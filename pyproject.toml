@@ -1,0 +1,46 @@
+[project]
+name = "discovery_wm"
+version = "0.1.0"
+description = "Working memory analysis of network discovery sample."
+readme = "README.md"
+authors = [
+    { name = "Logan Bennett", email = "logben@stanford.edu" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=2.2.3",
+    "pandas>=2.2.3",
+    "matplotlib>=3.10.0",
+]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=6.29.5",
+    "ipython>=8.32.0",
+    "python-dotenv>=1.0.1",
+    "pytest>=8.3.4",
+]
+
+[project.scripts]
+uv-cookie = "uv_cookie:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+extend-include = ["*.ipynb"]
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.ruff.lint]
+extend-select = ["E501", "W", "N", "R", "I"]
+
+[tool.pytest.ini_options]
+testpaths=['tests']
+
+[tool.pyright]
+exclude = ['.venv']
+venvPath = '.'
+venv = '.venv'
