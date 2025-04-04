@@ -11,8 +11,8 @@ export TIMESTAMP="20250402"
 export FMRIPREP_VERSION="${APPTAINER_DIR}/fmriprep_${TAG}_${TIMESTAMP}.sif"
 
 # - FMRIPrep
-export FMRIPREP_DERIVS_DIR="${BIDS_DIR}/derivatives/fmriprep_${TAG}"
-export FMRIPREP_WORK_DIR="./work/fmriprep_${TAG}"
+export FMRIPREP_DERIVS_DIR="${BIDS_DIR}/derivatives/fmriprep_${TAG}_${TIMESTAMP}"
+export FMRIPREP_WORK_DIR="./work/fmriprep_${TAG}_${TIMESTAMP}"
 
 # Batch input
 export ALL_SUBJECTS_FILE="./all_subs.txt"
