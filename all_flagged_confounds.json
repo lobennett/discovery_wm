@@ -1,0 +1,21 @@
+{
+    "sub-s03": {
+        "sub-s03_ses-07_task-goNogo_run-1_desc-confounds_timeseries": {
+            "mean_fd": 0.2274677544063613,
+            "proportion_trs_over_threshold": 0.1065989847715736
+        }
+    },
+    "sub-s10": {},
+    "sub-s19": {},
+    "sub-s29": {
+        "sub-s29_ses-12_task-directedForgettingWFlanker_run-1_desc-confounds_timeseries": {
+            "mean_fd": 0.2926280115471074,
+            "proportion_trs_over_threshold": 0.14356435643564355
+        },
+        "sub-s29_ses-05_task-directedForgetting_run-1_desc-confounds_timeseries": {
+            "mean_fd": 0.2363177030425837,
+            "proportion_trs_over_threshold": 0.11217183770883055
+        }
+    },
+    "sub-s43": {}
+}
