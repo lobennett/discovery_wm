@@ -2,7 +2,7 @@ from pathlib import Path
 import logging
 import pandas as pd
 
-from discovery_wm.utils import get_paths, get_all_subject_paths, dump_json
+from discovery_wm.utils import get_path_config, get_all_subj_paths, dump_json
 
 def get_confound_files(subj_fmriprep_dir: Path) -> list[Path]:
     pattern = "ses-*/func/*confounds_timeseries.tsv"
@@ -39,22 +39,19 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO)
     logging.info("Adding sidecars to BIDS directory")
 
-    bids_dir, fmriprep_dir, _, _, _, _, _= get_paths()
+    bids_dir, fmriprep_dir, _, _, _, _, _ = get_path_config()
 
-    # TODO: Change this to the correct path
-    # once the derivatives are created
-    temp_dir = Path("/oak/stanford/groups/russpold/data/network_grant/discovery_BIDS_21.0.1/derivatives/fmriprep_21.0.1_c")
-
-    all_subjects = get_all_subject_paths(bids_dir)
+    all_subjects = get_all_subj_paths(bids_dir)
     all_flagged_confounds = {}
     for subj in all_subjects:
         logging.info(f"Processing {subj.stem}")
         subj_id = subj.stem
         # subj_fmriprep_dir = Path(fmriprep_dir, subj_id)
         subj_fmriprep_dir = Path(
-            temp_dir, 
+            fmriprep_dir, 
             subj_id
         )
+        print(subj_fmriprep_dir)
         confound_files = get_confound_files(subj_fmriprep_dir)
         confound_values = get_confound_values(confound_files)
         flagged_confounds = get_flagged_confounds(confound_values)
