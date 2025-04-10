@@ -63,13 +63,13 @@ def main():
 
     # paths
     # - in paths
-    indiv_contrasts_dir = Path(f"./results/{subj_id}/indiv_contrasts")
+    indiv_contrasts_dir = Path(f"./results/{subj_id}/{task_name}/indiv_contrasts")
     # - out paths
     subj_dir = Path("./figures", subj_id, task_name, "brain_maps")
     subj_dir.mkdir(parents=True, exist_ok=True)
 
     # get unique contrast names
-    quality_control_dir = Path(f"./results/{subj_id}/quality_control")
+    quality_control_dir = Path(f"./results/{subj_id}/{task_name}/quality_control")
 
     print(f"{indiv_contrasts_dir}/*{subj_id}*{task_name}*effect-size*")
     all_contrasts = glob(f"{indiv_contrasts_dir}/*{subj_id}*{task_name}*effect-size*")
@@ -101,13 +101,17 @@ def main():
         for eff_size in contrast_effect_size:
             # Extract session from filename (format: ses-XX)
             # - Session
+            print(eff_size)
             session_match = extract_session_from_filename(eff_size)
             sessions.append(session_match)
+            print(session_match)
 
             # LOAD VIFS
             vif_file = list(
                 quality_control_dir.glob(f"*{subj_id}*{session_match}*{task_name}*")
             )
+            print(quality_control_dir)
+            print(f"*{subj_id}*{session_match}*{task_name}*")
             assert len(vif_file) == 1, f"Expected 1 VIF file, found {len(vif_file)}"
             vif_data = pd.read_csv(vif_file[0])
             target_contrast = get_target_contrast(contrast, task_name)

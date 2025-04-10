@@ -20,7 +20,7 @@ def main():
 
     # paths
     # - in paths
-    indiv_contrasts_dir = Path(f"./results/{subj_id}/indiv_contrasts")
+    indiv_contrasts_dir = Path(f"./results/{subj_id}/{task_name}/indiv_contrasts")
     # - out paths
     subj_dir = Path("./figures", subj_id, task_name, "brain_maps")
     subj_dir.mkdir(parents=True, exist_ok=True)

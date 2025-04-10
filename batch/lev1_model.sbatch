@@ -1,9 +1,9 @@
 #!/bin/bash
 #
 # Job name specified from launch script. 
-#SBATCH --time=02:00:00
+#SBATCH --time=00:30:00
 #SBATCH -n 1
-#SBATCH --array 1
+#SBATCH --array 1-5
 #SBATCH --cpus-per-task=2
 #SBATCH --mem-per-cpu=4G
 #SBATCH -p russpold,hns,normal 
@@ -43,6 +43,15 @@ echo "Subject: $subject"
 # Run the first-level model script
 echo "Running first-level model for task: $TASK_NAME"
 cmd="uv run src/discovery_wm/glm/first_level.py --subj-id $subject --task-name $TASK_NAME"
+echo "Running command: $cmd"
+$cmd
+
+# Create carpet plots and brain maps
+cmd="uv run src/discovery_wm/glm/create_carpet_plots.py --task-name $TASK_NAME"
+echo "Running command: $cmd"
+$cmd
+
+cmd="uv run src/discovery_wm/glm/create_brain_maps.py --task-name $TASK_NAME"
 echo "Running command: $cmd"
 $cmd
 
