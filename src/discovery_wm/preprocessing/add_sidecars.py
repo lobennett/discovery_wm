@@ -1,6 +1,6 @@
 import logging
 import json
-from discovery_wm.utils import get_paths, get_all_subject_paths, get_subj_sessions, dump_json
+from discovery_wm.utils import get_path_config, get_all_subj_paths, get_subj_sessions, dump_json
 
 def create_json_path(subj, ses):
     """Create a json fmap file for a subject and session."""
@@ -21,9 +21,9 @@ def main():
     logging.basicConfig(level=logging.INFO)
     logging.info("Adding sidecars to BIDS directory")
 
-    bids_dir, _, _, _, _, _, _= get_paths()
+    bids_dir, _, _, _, _, _, _ = get_path_config()
 
-    all_subjects = get_all_subject_paths(bids_dir)
+    all_subjects = get_all_subj_paths(bids_dir)
     
     for subj in all_subjects:
         sessions = get_subj_sessions(subj)

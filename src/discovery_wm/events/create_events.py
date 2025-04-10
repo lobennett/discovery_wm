@@ -1,6 +1,6 @@
 import logging
 import os
-from discovery_wm.utils import get_paths, get_all_subject_paths, get_subj_sessions
+from discovery_wm.utils import get_path_config, get_all_subj_paths, get_subj_sessions
 from discovery_wm.events.utils import cal_time_elapsed, get_neg_rt_correction, add_choice_acc, add_cols, response_time_and_junk
 from pathlib import Path
 import pandas as pd
@@ -199,9 +199,9 @@ def main():
     logging.basicConfig(level=logging.INFO)
     logging.info("Creating events files")
 
-    bids_dir, _, _, _, _, _, behavioral_dir = get_paths()
+    bids_dir, _, _, _, _, _, behavioral_dir = get_path_config()
 
-    all_subjects = get_all_subject_paths(bids_dir)
+    all_subjects = get_all_subj_paths(bids_dir)
     
     for subj in all_subjects:
         sessions = get_subj_sessions(subj)
