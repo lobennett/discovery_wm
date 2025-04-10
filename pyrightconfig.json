@@ -9,6 +9,8 @@
         "work",
         "figs",
         "data",
-        "apptainer_images"
+        "apptainer_images",
+        "results",
+        "batch"
     ]
 }
