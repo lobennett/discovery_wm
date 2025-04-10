@@ -1,0 +1,14 @@
+{
+    "exclude": [
+        "**/__pycache__",
+        "**/.git",
+        "**/node_modules",
+        ".venv",
+        ".pytest_cache",
+        "log",
+        "work",
+        "figs",
+        "data",
+        "apptainer_images"
+    ]
+}
