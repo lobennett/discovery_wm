@@ -1,6 +1,9 @@
 # apptainer images 
 apptainer_images/
 
+# ignore figs
+figs/
+
 # SLURM logs
 log/
 
