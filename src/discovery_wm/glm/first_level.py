@@ -40,7 +40,7 @@ def get_files(subj_dir: Path, task_name: str, expected_file_count: int = 4):
     files = {}
 
     for file in sorted(
-        subj_dir.glob(f"ses-*/func/*{task_name}*"),
+        subj_dir.glob(f"ses-*/func/*task-{task_name}_*"),
         key=lambda x: x.parts[-2]
     ):
         session_name = file.parts[-3]
