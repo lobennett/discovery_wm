@@ -23,6 +23,7 @@ def get_parser():
     parser = argparse.ArgumentParser(description="Parallelize by subject ID")
     parser.add_argument("--subj-id", type=str, required=False, help="Subject ID to run")
     parser.add_argument("--all-subjs", type=bool, default=False, help="Run on all subjects")
+    parser.add_argument("--task-name", type=str, required=False, help="Task name to run")
     return parser
 
 def get_all_subj_paths(bids_dir):
