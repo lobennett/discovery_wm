@@ -1,6 +1,9 @@
 # apptainer images 
 apptainer_images/
 
+# Results from GLM
+results/
+
 # ignore figs
 figs/
 
