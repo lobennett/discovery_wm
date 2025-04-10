@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Base paths 
-export BIDS_DIR="/oak/stanford/groups/russpold/data/network_grant/discovery_BIDS_20250402/"
+# Base paths
+export BIDS_DIR="/oak/stanford/groups/russpold/data/network_grant/discovery_BIDS_20250402"
 export APPTAINER_DIR="./apptainer_images"
 
 # fMRIPrep version
 # - NOTE: Change tags to match the version you want to use
-export TAG="latest" 
+export TAG="latest"
 export TIMESTAMP="20250402"
 export FMRIPREP_VERSION="${APPTAINER_DIR}/fmriprep_${TAG}_${TIMESTAMP}.sif"
 
@@ -19,4 +19,5 @@ export ALL_SUBJECTS_FILE="./all_subs.txt"
 
 # FreeSurfer license
 # - NOTE: Change this to the path to your FreeSurfer license file
+export FS_DIR="${FMRIPREP_DERIVS_DIR}/sourcedata/freesurfer"
 export FS_LICENSE="$HOME/license.txt"
