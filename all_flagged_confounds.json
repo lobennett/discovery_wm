@@ -1,20 +1,28 @@
 {
     "sub-s03": {
         "sub-s03_ses-07_task-goNogo_run-1_desc-confounds_timeseries": {
-            "mean_fd": 0.2274677544063613,
-            "proportion_trs_over_threshold": 0.1065989847715736
+            "mean_fd": 0.22849990561425823,
+            "proportion_trs_over_threshold": 0.10913705583756345
+        },
+        "sub-s03_ses-07_task-spatialTS_run-1_desc-confounds_timeseries": {
+            "mean_fd": 0.2145460151825301,
+            "proportion_trs_over_threshold": 0.09411764705882353
         }
     },
     "sub-s10": {},
     "sub-s19": {},
     "sub-s29": {
         "sub-s29_ses-12_task-directedForgettingWFlanker_run-1_desc-confounds_timeseries": {
-            "mean_fd": 0.2926280115471074,
-            "proportion_trs_over_threshold": 0.14356435643564355
+            "mean_fd": 0.2994304116627717,
+            "proportion_trs_over_threshold": 0.14686468646864687
+        },
+        "sub-s29_ses-08_task-cuedTS_run-1_desc-confounds_timeseries": {
+            "mean_fd": 0.20011088339352623,
+            "proportion_trs_over_threshold": 0.09495548961424333
         },
         "sub-s29_ses-05_task-directedForgetting_run-1_desc-confounds_timeseries": {
-            "mean_fd": 0.2363177030425837,
-            "proportion_trs_over_threshold": 0.11217183770883055
+            "mean_fd": 0.23588524496640564,
+            "proportion_trs_over_threshold": 0.10978520286396182
         }
     },
     "sub-s43": {}
