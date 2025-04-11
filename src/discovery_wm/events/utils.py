@@ -87,7 +87,7 @@ def get_trial_type(exp_id):
             'flanker_single_task_network__fmri': ['flanker_condition'],
             'directed_forgetting_with_flanker__fmri': ['flanker_condition', 'directed_forgetting_condition'],
             'stop_signal_with_directed_forgetting__fmri': ['stop_signal_condition', "directed_forgetting_condition"],
-            #stopsignal with flanker: stop signal and flanker conditions combined
+            # stopsignal with flanker: stop signal and flanker conditions combined
             'stop_signal_with_flanker__fmri': ['stop_signal_condition', 'flanker_condition'],
             # LB: ADDED NEW ONES BELOW -> seems that some of the dual tasks ones were missing. 
             'cued_task_switching_with_directed_forgetting__fmri': ['directed_forgetting_condition', 'task_condition', 'cue_condition'],
@@ -170,16 +170,32 @@ def cleanup_events(task, df):
         return df
 
 def stopSignal(df):
-    choice_acc_str = df['choice_acc'].astype(str)
+    # Create a copy to avoid modifying the original dataframe
+    df = df.copy()
+    
+    # Only apply conditions to test_trial rows
+    mask = df['trial_id'] == 'test_trial'
+    
+    # Get the subset of rows that are test_trial
+    trial_rows = df[mask]
+    
+    choice_acc_str = trial_rows['choice_acc'].astype(str)
     
     conditions = [
-        (df['trial_type']=='go'),
-        (df['trial_type']=='stop') & (choice_acc_str=='1'),
-        (df['trial_type']=='stop') & (choice_acc_str=='0')
+        (trial_rows['trial_type']=='go'),
+        (trial_rows['trial_type']=='stop') & (choice_acc_str=='1'),
+        (trial_rows['trial_type']=='stop') & (choice_acc_str=='0')
     ]
     values = ['go', 'stop_success', 'stop_failure']
     result = np.select(conditions, values, default='unknown')
-    df['trial_type'] = pd.Series(result).astype(object)
+    
+    # Update only the test_trial rows
+    df.loc[mask, 'trial_type'] = result
+    
+    # Ensure fixation rows have a consistent trial_type
+    fixation_mask = df['trial_id'] == 'test_fixation'
+    df.loc[fixation_mask, 'trial_type'] = 'fixation'
+    
     return df
 
 def goNogo(df):
