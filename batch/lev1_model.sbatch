@@ -47,11 +47,11 @@ echo "Running command: $cmd"
 $cmd
 
 # Create carpet plots and brain maps
-cmd="uv run src/discovery_wm/glm/create_carpet_plots.py --task-name $TASK_NAME"
+cmd="uv run src/discovery_wm/glm/create_carpet_plots.py --subj-id $subject --task-name $TASK_NAME"
 echo "Running command: $cmd"
 $cmd
 
-cmd="uv run src/discovery_wm/glm/create_brain_maps.py --task-name $TASK_NAME"
+cmd="uv run src/discovery_wm/glm/create_brain_maps.py --subj-id $subject --task-name $TASK_NAME"
 echo "Running command: $cmd"
 $cmd
 
