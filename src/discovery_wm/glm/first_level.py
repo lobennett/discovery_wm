@@ -13,18 +13,29 @@ from discovery_wm.glm.config import contrasts_config, regressor_config
 from discovery_wm.glm.quality_control import get_all_contrast_vif
 from discovery_wm.utils import get_path_config, get_parser, get_subj_id 
 
+def get_mean_rt_query(task_name: str):
+    if 'stopSignal' in task_name:
+        return (
+            "(trial_id == 'test_trial' and "
+            "((trial_type == 'go' and response_time >= 0.2 and key_press == correct_response) or "
+            "(trial_type == 'stop_failure' and response_time >= 0.2)))"
+        )
+    
+    return (
+        "key_press == correct_response and trial_id == 'test_trial' and response_time >= 0.2"
+    )
 
-def calculate_mean_rt(files: dict):
+def calculate_mean_rt(files: dict, task_name: str):
     mean_rts = []
+    query_string = get_mean_rt_query(task_name)
+    
     for session in files:
         # Read the events file once and store in df
         df = pd.read_csv(files[session]["events"], sep='\t')
-        subset = df.query(
-            "key_press == correct_response and trial_id == 'test_trial' "
-            "and response_time >= 0.2" 
-        )
+        subset = df.query(query_string)
         mean_rt = subset['response_time'].mean()
         mean_rts.append(mean_rt)
+        
     return np.mean(mean_rts)
 
 def get_nscans(datafile: Path):
@@ -57,6 +68,8 @@ def get_files(subj_dir: Path, task_name: str, expected_file_count: int = 4):
             files[session_name]["t1w_data"] = file
         elif "T1w_desc-brain_mask.nii.gz" in file_name:
             files[session_name]["t1w_brain_mask"] = file
+        ## TODO: Add these when tedana transform is done 
+        ## and derivatives are added to the glm_data directory. 
         # elif "MNI152NLin2009cAsym_res-2_desc-optcom_bold.nii.gz" in file_name:
         #     files[session_name]["mni_data"] = file
         # elif "MNI152NLin2009cAsym_res-2_desc-brain_mask.nii.gz" in file_name:
@@ -70,37 +83,111 @@ def get_files(subj_dir: Path, task_name: str, expected_file_count: int = 4):
     return files
 
 
-def get_confounds_tedana(confounds_file: Path):
+def get_confounds_tedana(confounds_file: Path, task_name: str, is_discovery_sample: bool):
     confounds_df = pd.read_csv(confounds_file, sep="\t", na_values=["n/a"]).fillna(0)
-    confounds = confounds_df.filter(
-        regex='cosine|trans_x$|trans_x_derivative1$|trans_x_power2$|'
-        'trans_x_derivative1_power2$|trans_y$|trans_y_derivative1$|trans_y_power2$|'
-        'trans_y_derivative1_power2$|trans_z$|trans_z_derivative1$|trans_z_power2$|'
-        'trans_z_derivative1_power2$|rot_x$|rot_x_derivative1$|rot_x_power2$|'
-        'rot_x_derivative1_power2$|rot_y$|rot_y_derivative1$|rot_y_power2$|'
-        'rot_y_derivative1_power2$|rot_z$|rot_z_derivative1$|rot_z_power2$|'
-        'rot_z_derivative1_power2$'
-    )
+ 
+    if is_discovery_sample and task_name == 'nBack':
+        # NOTE: Discovery sample nBack had an issue with blocked design
+        # so we are using the following regex to select the confounds
+        # which includes more cosine terms
+        confounds = confounds_df.filter(
+            regex=(
+                'cosine0[0-4]|trans_x$|trans_x_derivative1$|trans_x_power2$|'
+                'trans_x_derivative1_power2$|trans_y$|trans_y_derivative1$|'
+                'trans_y_power2$|trans_y_derivative1_power2$|trans_z$|'
+                'trans_z_derivative1$|trans_z_power2$|trans_z_derivative1_power2$|'
+                'rot_x$|rot_x_derivative1$|rot_x_power2$|rot_x_derivative1_power2$|'
+                'rot_y$|rot_y_derivative1$|rot_y_power2$|rot_y_derivative1_power2$|'
+                'rot_z$|rot_z_derivative1$|rot_z_power2$|rot_z_derivative1_power2$'
+            )
+        )
+    else:
+        confounds = confounds_df.filter(
+            regex=(
+                'cosine|trans_x$|trans_x_derivative1$|trans_x_power2$|'
+                'trans_x_derivative1_power2$|trans_y$|trans_y_derivative1$|'
+                'trans_y_power2$|trans_y_derivative1_power2$|trans_z$|'
+                'trans_z_derivative1$|trans_z_power2$|trans_z_derivative1_power2$|'
+                'rot_x$|rot_x_derivative1$|rot_x_power2$|rot_x_derivative1_power2$|'
+                'rot_y$|rot_y_derivative1$|rot_y_power2$|rot_y_derivative1_power2$|'
+                'rot_z$|rot_z_derivative1$|rot_z_power2$|rot_z_derivative1_power2$'
+            )
+        )
+            
     return confounds.reset_index(drop=True)
 
 
-def define_nuisance_trials(events_df: pd.DataFrame):
-    # - consider trial an omission if did not press a key
-    omission = ((events_df.key_press == -1) & (events_df.trial_id == "test_trial"))
-    # - consider trial a commission if pressed the wrong key and rt > .2s
-    commission = (
-        (events_df.key_press != events_df.correct_response)
-        & (events_df.key_press != -1)
-        & (events_df.response_time >= 0.2)
-        & (events_df.trial_id == "test_trial")
-    )
-    # - consider trial too fast if rt < .2s
-    rt_too_fast = (
-        (events_df.response_time < 0.2) &
-        (events_df.trial_id == "test_trial")
-    )
-    # - consider trial 'bad' if it is any one of the above is true
-    bad_trials = omission | commission | rt_too_fast
+def define_nuisance_trials(events_df: pd.DataFrame, task_name: str):
+    # Add this line to handle missing values in trial_type
+    events_df = events_df.copy()
+    events_df['trial_type'] = events_df['trial_type'].fillna('n/a')
+    
+    if task_name in ["cuedTS", "nBack", "spatialTS", "flanker", "shapeMatching",
+                     "spatialTSWCuedTS", "flankerWShapeMatching", "cuedTSWFlanker",
+                     "spatialTSWShapeMatching", "nBackWShapeMatching", "nBackWSpatialTS",
+                     "directedForgettingWCuedTS"]:
+        omission = ((events_df.key_press == -1) & (events_df.trial_id == "test_trial"))
+        commission = (
+            (events_df.key_press != events_df.correct_response)
+            & (events_df.key_press != -1)
+            & (events_df.response_time >= 0.2)
+            & (events_df.trial_id == "test_trial")
+        )
+        rt_too_fast = ((events_df.response_time < 0.2) & (events_df.trial_id == "test_trial"))
+        bad_trials = omission | commission | rt_too_fast
+
+    elif task_name in ["directedForgetting", "directedForgettingWFlanker"]: 
+        omission = (events_df.key_press == -1) & (events_df.trial_id == "test_trial")
+        commission = (
+            (events_df.key_press != events_df.correct_response)
+            & (events_df.key_press != -1)
+            & (events_df.response_time >= 0.2)
+            & (events_df.trial_id == "test_trial")
+        )
+        rt_too_fast = (events_df.response_time < 0.2) & (events_df.trial_id == "test_trial")
+        bad_trials = omission | commission | rt_too_fast
+
+    elif task_name in ["stopSignal", "goNogo"]:
+        omission = (events_df.key_press == -1) & (events_df.trial_type == "go")
+        commission = (
+            (events_df.key_press != events_df.correct_response)
+            & (events_df.key_press != -1)
+            & (events_df.trial_type == "go")
+            & (events_df.response_time >= 0.2)
+        )
+        rt_too_fast = (events_df.response_time < 0.2) & (events_df.trial_type == "go")
+        bad_trials = omission | commission | rt_too_fast
+
+    elif task_name in ["stopSignalWDirectedForgetting"]:
+        omission = (events_df.key_press == -1) & (
+            events_df.trial_type.isin(["go_pos", "go_neg", "go_con"])
+        )
+        commission = (
+            (events_df.key_press != events_df.correct_response)
+            & (events_df.key_press != -1)
+            & (events_df.trial_type.isin(["go_pos", "go_neg", "go_con"]))
+            & (events_df.response_time >= 0.2)
+        )
+        rt_too_fast = (events_df.response_time < 0.2) & (
+            events_df.trial_type.isin(["go_pos", "go_neg", "go_con"])
+        )
+        bad_trials = omission | commission | rt_too_fast
+
+    elif task_name in ["stopSignalWFlanker"]:
+        omission = (events_df.key_press == -1) & (
+            events_df.trial_type.isin(["go_incongruent", "go_congruent"])
+        )
+        commission = (
+            (events_df.key_press != events_df.correct_response)
+            & (events_df.key_press != -1)
+            & (events_df.trial_type.isin(["go_incongruent", "go_congruent"]))
+            & (events_df.response_time >= 0.2)
+        )
+        rt_too_fast = (events_df.response_time < 0.2) & (
+            events_df.trial_type.isin(["go_incongruent", "go_congruent"])
+        )
+        bad_trials = omission | commission | rt_too_fast
+
 
     return 1 * bad_trials, 1 * omission, 1 * commission, 1 * rt_too_fast
 
@@ -109,7 +196,7 @@ def make_regressor_and_derivative(
     n_scans,
     tr,
     events_df,
-    add_deriv = False,
+    add_deriv=False,
     amplitude_column=None,
     duration_column=None,
     onset_column="onset",
@@ -132,12 +219,27 @@ def make_regressor_and_derivative(
         events_df["temp_subset"] = True
         subset = "temp_subset == True"
 
+    # Get the selected columns
     reg_3col = events_df.query(subset)[
         [onset_column, duration_column, amplitude_column]
     ]
-    reg_3col = reg_3col.rename(
-        columns={duration_column: "duration", amplitude_column: "modulation"}
-    )
+    
+    # Check if amplitude_column and duration_column are the same
+    # If they are, create a temporary copy with a different name to avoid duplicate columns
+    if amplitude_column == duration_column:
+        reg_3col = reg_3col.copy()
+        reg_3col = reg_3col.rename(columns={duration_column: "duration"})
+        reg_3col = reg_3col.rename(columns={amplitude_column: "modulation"})
+    else:
+        # Original renaming logic
+        reg_3col = reg_3col.rename(
+            columns={duration_column: "duration", amplitude_column: "modulation"}
+        )
+
+    # TODO: Check if the above is necessary 
+    # reg_3col = reg_3col.rename(
+    #     columns={duration_column: "duration", amplitude_column: "modulation"}
+    # )
 
     if demean_amp:
         reg_3col["modulation"] = reg_3col["modulation"] - reg_3col["modulation"].mean()
@@ -147,13 +249,21 @@ def make_regressor_and_derivative(
     else:
         hrf_model = "spm"
 
+    # Debug: Print the shape of the transposed array
+    transposed_array = np.transpose(np.array(reg_3col))
+    print(f"Shape of transposed array for {cond_id}: {transposed_array.shape}")
+    
     regressor_array, regressor_names = compute_regressor(
-        np.transpose(np.array(reg_3col)),
+        transposed_array,
         hrf_model,
         # deals with slice timing issue with outputs from fMRIPrep
         np.arange(n_scans) * tr + tr / 2,
         con_id=cond_id,
     )
+    
+    # Debug: Print the regressor names
+    print(f"Regressor names for {cond_id}: {regressor_names}")
+    
     regressors = pd.DataFrame(regressor_array, columns=regressor_names)
     return regressors, reg_3col
 
@@ -280,7 +390,7 @@ def main():
 
     # Calculate mean RT
     # - This is used to center the RT regressor
-    mean_rt = calculate_mean_rt(files)
+    mean_rt = calculate_mean_rt(files, task_name)
     tr = 1.49000
     model_break = True
 
@@ -319,7 +429,8 @@ def main():
         # TEDANA CONFOUNDS
         # - These are the confounds that are created by TEDANA / FMRIPREP
         # - These map onto motion parameters
-        confound_regressors = get_confounds_tedana(confounds)
+        # TODO: change flag if running validation sample. 
+        confound_regressors = get_confounds_tedana(confounds, task_name, is_discovery_sample=True)
 
         # EVENTS
         # - These are the events corresponding to the task
@@ -330,7 +441,7 @@ def main():
             events_df["omission"],
             events_df["commission"],
             events_df["rt_fast"],
-        ) = define_nuisance_trials(events_df)
+        ) = define_nuisance_trials(events_df, task_name)
 
         # TODO: Add to quality control
         # Remove unused variable or use it

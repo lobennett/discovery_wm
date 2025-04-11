@@ -174,6 +174,7 @@ regressor_config = {
             "amplitude_column": "constant_1_column",
             "duration_column": "constant_1_column",
             "subset": (
+                "trial_id == 'test_trial' and "
                 "key_press == correct_response and response_time >= 0.2 "
                 "and trial_type == 'go'"
             ),
@@ -269,6 +270,7 @@ regressor_config = {
             "amplitude_column": "constant_1_column",
             "duration_column": "constant_1_column",
             "subset": (
+                "trial_id == 'test_trial' and "
                 "key_press == correct_response and response_time >= 0.2 "
                 "and trial_type == 'go'"
             ),
