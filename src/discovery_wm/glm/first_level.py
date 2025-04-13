@@ -249,15 +249,17 @@ def make_regressor_and_derivative(
     else:
         hrf_model = "spm"
 
-    # Debug: Print the shape of the transposed array
+ 
     transposed_array = np.transpose(np.array(reg_3col))
     print(f"Shape of transposed array for {cond_id}: {transposed_array.shape}")
+
+    # NOTE: deals with slice timing issue with outputs from fMRIPrep
+    slice_timing_adjustment = np.arange(n_scans) * tr + tr / 2
     
     regressor_array, regressor_names = compute_regressor(
         transposed_array,
         hrf_model,
-        # deals with slice timing issue with outputs from fMRIPrep
-        np.arange(n_scans) * tr + tr / 2,
+        slice_timing_adjustment,
         con_id=cond_id,
     )
     
@@ -350,7 +352,7 @@ def create_regressors_from_config(config, events_df, nscans, tr, task_name=None)
 
     return regressors, regressor_3cols
 
-def prepare_results_dir(subject_id: str, task_name: str, results_dir: Path = Path("./results/")):
+def prepare_results_dir(subject_id: str, task_name: str, results_dir: Path = Path("./output_lev1/")):
     subdirs = [
         "quality_control",
         "indiv_contrasts",
@@ -465,7 +467,7 @@ def main():
         regressors_dict, regressor_dfs = create_regressors_from_config(
             regressor_config, events_df, nscans, tr, task_name
         )
-
+  
         # Create design matrix
         design_matrix = pd.concat(
             [regressors_dict[name] for name in regressors_dict] + [confound_regressors],

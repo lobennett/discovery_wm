@@ -12,37 +12,48 @@ from nilearn.masking import apply_mask
 from nilearn.plotting import plot_img
 from discovery_wm.utils import get_parser, get_subj_id 
 
+def get_unique_contrasts(indiv_contrasts_dir: Path, subj_id: str, task_name: str) -> list[str]:
+    """Get unique contrasts from effect size files"""
+    all_contrasts = glob(f"{indiv_contrasts_dir}/*{subj_id}*{task_name}*contrast-*_rtmodel*effect-size*")
+    contrasts = [
+        contrast.split('_contrast-')[1].split('_rtmodel')[0]
+        for contrast in all_contrasts
+    ]
+    return np.unique(contrasts)
+
+def extract_session_from_filename(filename: str) -> str:
+    """Extract session from filename"""
+    return (
+        filename.split('_ses-')[1].split('_')[0] if '_ses-' in filename else 'unknown'
+    )
+
 def main():
     # get unique contrast names
     parser = get_parser()
     task_name = parser.parse_args().task_name
     subj_id = get_subj_id(parser)
 
-    # paths
-    # - in paths
-    indiv_contrasts_dir = Path(f"./results/{subj_id}/{task_name}/indiv_contrasts")
-    # - out paths
-    subj_dir = Path("./figures", subj_id, task_name, "brain_maps")
-    subj_dir.mkdir(parents=True, exist_ok=True)
+    # Paths
+    # - Input path 
+    subj_lev1_dir = Path(f"./output_lev1/{subj_id}/{task_name}")
+    # - Contains effect size files for subject
+    indiv_contrasts_dir = Path(f"{subj_lev1_dir}/indiv_contrasts")
+    # - Output path
+    outdir = Path("./output_lev1/figures", subj_id, task_name, "brain_maps")
+    # - Path to store fixed effects brain map results
+    fixed_effects_dir = Path(outdir, "fixed_effects")
+    # - Path to store individual contrasts brain map results
+    individual_contrasts_dir = Path(outdir, "individual_contrasts")
+
+    fixed_effects_dir.mkdir(parents=True, exist_ok=True)
+    individual_contrasts_dir.mkdir(parents=True, exist_ok=True)
 
     # get unique contrast names
-    # - TODO: add task name to this path
-    all_contrasts = glob(f"{indiv_contrasts_dir}/*effect-size*")
-    contrasts = [
-        contrast.split('_contrast-')[1].split('_rtmodel')[0]
-        for contrast in all_contrasts
-    ]
-    unique_contrasts = np.unique(contrasts)
+    unique_contrasts = get_unique_contrasts(indiv_contrasts_dir, subj_id, task_name)
 
     # carefully concatenate contrasts and variance images to keep order consistent
-    all_eff_sizes = []
-    all_eff_vars = []
-    all_con_names = []
-
-    fixed_fx_contrasts = []
-    fixed_fx_variances = []
-    fixed_fx_stats = []
-    fixed_fx_contrast_names = []
+    all_eff_sizes, all_eff_vars, all_con_names = [], [], []
+    fixed_fx_contrasts, fixed_fx_variances, fixed_fx_stats, fixed_fx_contrast_names = [], [], [], []
 
     for contrast in unique_contrasts:
         contrast_effect_size = glob(
@@ -72,12 +83,9 @@ def main():
         for i, effect_file in enumerate(contrast_effect_size):
             img = nf.load(effect_file)
             # Get run number or some identifier from filename
-            session_match = (
-                effect_file.split('_ses-')[1].split('_')[0]
-                if '_ses-' in effect_file else 'unknown'
-            )
+            session_match = extract_session_from_filename(effect_file)
+            # Create brain map figure
             plt.figure(figsize=(15, 5))
-            # Plot the individual contrast image
             plot_img(
                 img,
                 title=f"{contrast} - (ses-{session_match})",
@@ -85,14 +93,12 @@ def main():
                 cut_coords=(-10, 0, 10, 20, 30, 40, 50, 60, 70),
                 colorbar=True,
                 cmap='coolwarm',
-                vmin=-5,
-                vmax=5
-            )
-            individual_dir = Path(subj_dir, "individual_sessions")
-            individual_dir.mkdir(parents=True, exist_ok=True)
-
-            plt.savefig(f'{individual_dir}/{subj_id}_{task_name}_contrast-{contrast}_ses-{session_match}.png')
-            print(f"Saved individual contrast images for {contrast} to {subj_dir}")
+                # vmin=-5,
+                # vmax=5
+            )    
+            # Save brain map figure
+            plt.savefig(f'{individual_contrasts_dir}/{subj_id}_{task_name}_contrast-{contrast}_ses-{session_match}.png')
+            print(f"Saved individual contrast images for {contrast} to {individual_contrasts_dir}")
             plt.close()
 
         # prep data and mask
@@ -143,8 +149,6 @@ def main():
                 cmap='coolwarm',
                 axes=axes[i],
             )
-        fixed_effects_dir = f"{subj_dir}/fixed_effects/"
-        os.makedirs(fixed_effects_dir, exist_ok=True)
         plt.savefig(f'{fixed_effects_dir}/{subj_id}_{task_name}_effect_sizes_stat_maps.png')
         plt.close()
         print(
