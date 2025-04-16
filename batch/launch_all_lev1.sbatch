@@ -41,7 +41,7 @@ TASKS=(
 # Launch first-level models for each task
 for task in "${TASKS[@]}"; do
     echo "Launching first-level model for task: $task"
-    sbatch --job-name="lev1-model-${task}" ./batch/lev1_model.sbatch "$task"
+    sbatch --job-name="lev1-model-${task}-mni" ./batch/lev1_model.sbatch "$task"
 done
 
 echo "All first-level models launched"

@@ -35,11 +35,11 @@ def main():
 
     # Paths
     # - Input path 
-    subj_lev1_dir = Path(f"./output_lev1/{subj_id}/{task_name}")
+    subj_lev1_dir = Path(f"./output_lev1_mni/{subj_id}/{task_name}")
     # - Contains effect size files for subject
     indiv_contrasts_dir = Path(f"{subj_lev1_dir}/indiv_contrasts")
     # - Output path
-    outdir = Path("./output_lev1/figures", subj_id, task_name, "brain_maps")
+    outdir = Path("./output_lev1_mni/figures", subj_id, task_name, "brain_maps")
     # - Path to store fixed effects brain map results
     fixed_effects_dir = Path(outdir, "fixed_effects")
     # - Path to store individual contrasts brain map results

@@ -41,7 +41,7 @@ def calculate_mean_rt(files: dict, task_name: str):
 def get_nscans(datafile: Path):
     return load_img(datafile).shape[3]
 
-def get_files(subj_dir: Path, task_name: str, expected_file_count: int = 4):
+def get_files(subj_dir: Path, task_name: str, expected_file_count: int = 6):
     # The reason expected_file_count is 4 is because
     # - there are 4 files for each session:
     # - events.tsv
@@ -70,10 +70,10 @@ def get_files(subj_dir: Path, task_name: str, expected_file_count: int = 4):
             files[session_name]["t1w_brain_mask"] = file
         ## TODO: Add these when tedana transform is done 
         ## and derivatives are added to the glm_data directory. 
-        # elif "MNI152NLin2009cAsym_res-2_desc-optcom_bold.nii.gz" in file_name:
-        #     files[session_name]["mni_data"] = file
-        # elif "MNI152NLin2009cAsym_res-2_desc-brain_mask.nii.gz" in file_name:
-        #     files[session_name]["mni_brain_mask"] = file
+        elif "MNI152NLin2009cAsym_res-2_desc-optcom_bold.nii.gz" in file_name:
+            files[session_name]["mni_data"] = file
+        elif "MNI152NLin2009cAsym_res-2_desc-brain_mask.nii.gz" in file_name:
+            files[session_name]["mni_brain_mask"] = file
 
     for key in files:
         assert len(files[key]) == expected_file_count, (
@@ -352,7 +352,7 @@ def create_regressors_from_config(config, events_df, nscans, tr, task_name=None)
 
     return regressors, regressor_3cols
 
-def prepare_results_dir(subject_id: str, task_name: str, results_dir: Path = Path("./output_lev1/")):
+def prepare_results_dir(subject_id: str, task_name: str, results_dir: Path = Path("./output_lev1_mni/")):
     subdirs = [
         "quality_control",
         "indiv_contrasts",
@@ -414,19 +414,20 @@ def main():
         t1w_data = files[session]["t1w_data"]
         confounds = files[session]["confounds"]
         t1w_brain_mask = files[session]["t1w_brain_mask"]
-        # mni_data = files[session]["mni_data"]
-        # mni_brain_mask = files[session]["mni_brain_mask"]
+        mni_data = files[session]["mni_data"]
+        mni_brain_mask = files[session]["mni_brain_mask"]
 
         print(events)
         print(t1w_data)
         print(confounds)
         print(t1w_brain_mask)
-        # print(mni_data)
-        # print(mni_brain_mask)
+        print(mni_data)
+        print(mni_brain_mask)
 
         # Get the number of timepoints in the current session
         # - this is used to create the regressors
-        nscans = get_nscans(t1w_data)
+        # nscans = get_nscans(t1w_data)
+        nscans = get_nscans(mni_data)
 
         # TEDANA CONFOUNDS
         # - These are the confounds that are created by TEDANA / FMRIPREP
@@ -489,7 +490,8 @@ def main():
         fmri_glm = FirstLevelModel(
             tr,
             subject_label=subj_id,
-            mask_img=t1w_brain_mask,
+            # mask_img=t1w_brain_mask,
+            mask_img=mni_brain_mask,
             noise_model="ar1",
             standardize=False,
             drift_model=None,
@@ -497,8 +499,8 @@ def main():
             minimize_memory=True,
         )
 
-        out = fmri_glm.fit(t1w_data, design_matrices=design_matrix)
-
+        # out = fmri_glm.fit(t1w_data, design_matrices=design_matrix)
+        out = fmri_glm.fit(mni_data, design_matrices=design_matrix)
         # Save the contrasts
         for contrast_name, contrast_formula in contrasts.items():
             con_est = out.compute_contrast(contrast_formula, output_type="all")
@@ -534,10 +536,10 @@ def main():
     print("Contrasts: ", all_contrast_names)
 
     # Filter out task-baseline contrast for fixed effects model
-    fixed_effects_contrast_names = [c for c in all_contrast_names if c != "task-baseline"]
+    # fixed_effects_contrast_names = [c for c in all_contrast_names if c != "task-baseline"]
 
     # Save out fixed effects contrasts
-    for contrast_name in fixed_effects_contrast_names:
+    for contrast_name in all_contrast_names:
         print(f"Processing fixed effects contrast for {contrast_name}")
         effects_files = [
             f for f in indiv_contrasts_dir.glob(

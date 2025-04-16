@@ -54,7 +54,9 @@ def get_target_contrast(contrast: str, task_name: str) -> str:
         'task-baseline': get_task_baseline_contrasts(task_name),
         'main_vars': "1/3*(SDD+DDD+DDS)-1/2*(SNN+DNN)",
         'cue_switch_cost': "task_stay_cue_switch-task_stay_cue_stay",
-        'task_switch_cost': "task_switch_cue_switch-task_stay_cue_switch"
+        'task_switch_cost': "task_switch_cue_switch-task_stay_cue_switch",
+        'match-mismatch': "1/2*(match_2back+match_1back-mismatch_2back-mismatch_1back)",
+        'twoBack-oneBack': "1/2*(mismatch_2back+match_2back-mismatch_1back-match_1back)"
     }
     return contrasts.get(contrast, contrast)
 
@@ -75,7 +77,7 @@ def main():
 
     # Paths
     # - Input path 
-    subj_lev1_dir = Path(f"./output_lev1/{subj_id}/{task_name}")
+    subj_lev1_dir = Path(f"./output_lev1_mni/{subj_id}/{task_name}")
     # - Contains effect size files for subject
     indiv_contrasts_dir = Path(f"{subj_lev1_dir}/indiv_contrasts")
     # - Contains files with corresponding VIF values for subject
@@ -181,7 +183,7 @@ def main():
     plt.title(f'Effect sizes ({subj_id})')
 
     # Save carpet plot
-    outdir = f'./output_lev1/figures/{subj_id}/{task_name}/carpet_plots/'
+    outdir = f'./output_lev1_mni/figures/{subj_id}/{task_name}/carpet_plots/'
     os.makedirs(outdir, exist_ok=True)
     outpath = f'{outdir}/{subj_id}_{task_name}_effect_sizes.png'
     plt.savefig(outpath)
