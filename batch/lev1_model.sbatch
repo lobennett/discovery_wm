@@ -3,7 +3,7 @@
 # Job name specified from launch script. 
 #SBATCH --time=00:30:00
 #SBATCH -n 1
-#SBATCH --array 2-5
+#SBATCH --array 2
 #SBATCH --cpus-per-task=8
 #SBATCH --mem-per-cpu=8G
 #SBATCH -p russpold,hns,normal 
