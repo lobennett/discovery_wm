@@ -18,6 +18,8 @@ dependencies = [
     "nipype>=1.10.0",
     "seaborn>=0.13.2",
     "templateflow>=24.2.2",
+    "factor-analyzer>=0.5.1",
+    "rpy2>=3.5.17",
 ]
 
 [dependency-groups]
@@ -26,6 +28,7 @@ dev = [
     "ipython>=8.32.0",
     "python-dotenv>=1.0.1",
     "pytest>=8.3.4",
+    "img2pdf>=0.6.0",
 ]
 
 [project.scripts]

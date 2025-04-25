@@ -24,6 +24,7 @@ def get_parser():
     parser.add_argument("--subj-id", type=str, required=False, help="Subject ID to run")
     parser.add_argument("--all-subjs", type=bool, default=False, help="Run on all subjects")
     parser.add_argument("--task-name", type=str, required=False, help="Task name to run")
+    parser.add_argument("--contrast-name", type=str, required=False, help="Contrast name to run")
     return parser
 
 def get_all_subj_paths(bids_dir):
@@ -64,3 +65,6 @@ def get_ses_task_run(f):
     run_number = next((comp for comp in components if comp.startswith('run-')), None)
 
     return ses, task_name, run_number
+
+def extract_contrast_name(contrast_file: Path) -> str:
+    return contrast_file.name.split("contrast-")[1].split("_rtmodel")[0]

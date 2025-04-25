@@ -1,178 +1,179 @@
+import logging
+import re
 from pathlib import Path
-import pandas as pd
+
+import matplotlib.pyplot as plt
+import nibabel as nb
 import numpy as np
-from nilearn.datasets import load_mni152_template
+import pandas as pd
+from nilearn import plotting
 from nilearn.glm import threshold_stats_img
-from nilearn.glm.second_level import SecondLevelModel, non_parametric_inference
-from nilearn import plotting 
-import os
+from nilearn.glm.second_level import SecondLevelModel
 from templateflow import api as tf
-from discovery_wm.utils import get_parser, get_subj_id, dump_json
-from nilearn import image
 
-def extract_contrast_name(contrast_file: Path) -> str:
-    return contrast_file.name.split("contrast-")[1].split("_rtmodel")[0]
+from discovery_wm.utils import extract_contrast_name, get_parser
 
-def get_all_task_contrasts(in_dir: Path) -> dict:
-    task_contrasts = {}
-    for subj in in_dir.glob("sub-s*"):
-        for task in subj.glob("*"):
-            if task.name not in task_contrasts:
-                task_contrasts[task.name] = []
-            for f in task.glob("fixed_effects/*fixed-effects.nii.gz"):
-                cname = extract_contrast_name(f)
-                if cname not in task_contrasts[task.name]:
-                    task_contrasts[task.name].append(cname)
-    return task_contrasts
 
-def get_subj_ids(in_dir: str) -> list[str]:
-    """Finds subject directories (like sub-sXXX) within the input directory."""
-    matching_dirs = [p for p in Path(in_dir).glob("sub-s*") if p.is_dir()]
-    subject_ids = sorted([p.name for p in matching_dirs])
-    return subject_ids
+def get_contrast_paths_by_subject_and_contrast_name(base_dir: str, task_name: str = None, contrast_name: str = None) -> dict:
+    """
+    Takes in the directory of the first level contrast maps in MNI space,
+    and returns a dictionary of the contrast maps by each subject for each contrast.
+    If task_name is provided, only returns maps for that task.
+    If contrast_name is provided, only returns maps for that contrast.
+    """
+    contrast_maps = {}
+    for subj in base_dir.glob('sub-s*'):
+        contrast_maps[subj.name] = {}
+        
+        # Build glob pattern based on provided args
+        glob_pattern = '*/indiv_contrasts/*effect-size.nii.gz'
+        if task_name is not None:
+            glob_pattern = f'{task_name}/indiv_contrasts/*effect-size.nii.gz'
+        if contrast_name is not None:
+            glob_pattern = f'*/indiv_contrasts/*contrast-{contrast_name}_*effect-size.nii.gz'
+            
+        for task_contrast in subj.glob(glob_pattern):
+            cname = extract_contrast_name(task_contrast)
+            current_task_name = task_contrast.parent.parent.name
+            key = f'{current_task_name}_{cname}'
+            if key not in contrast_maps[subj.name]:
+                contrast_maps[subj.name][key] = []
+            contrast_maps[subj.name][key].append(task_contrast)
+    return contrast_maps
 
-def get_all_fx_contrast_files(in_dir: Path, task_name: str, contrast: str) -> list[str]:
-    """Finds all fixed-effects contrast files matching the pattern."""
-    files = []
-    pattern = f"sub-*/{task_name}/fixed_effects/*contrast-{contrast}_*stat-fixed-effects.nii.gz"
-    for f in in_dir.glob(pattern):
-        cname = extract_contrast_name(f)
-        if cname == contrast:
-            files.append(str(f))
-    return sorted(files)
+def sort_by_session_order(contrast_maps: dict) -> dict:
+    """
+    Sorts the contrast maps by session order.
+    """
+    for subj in contrast_maps:
+        for cname in contrast_maps[subj]:
+            # Extract session number from filename to use as sorting key
+            # This ensures that the contrast maps are sorted in the correct
+            # order: from first session to last session.
+            contrast_maps[subj][cname] = sorted(
+                contrast_maps[subj][cname],
+                key=lambda x: int(re.search(r'ses-(\d+)', str(x)).group(1))
+            )
 
-def compute_contrast(files: list[str], design_matrix_df: pd.DataFrame, contrast: str, threshold_z: float = 2.0, n_jobs: int = 4):
-    second_level_model = SecondLevelModel(n_jobs=n_jobs, verbose=1)
-    second_level_model = second_level_model.fit(
-        files, design_matrix=design_matrix_df
+    return contrast_maps
+
+def sort_by_encounter_number(contrast_maps: dict) -> dict:
+    """
+    Organizes the contrast maps by the order in which they
+    were encountered by the subjects. Clusters contrasts across
+    subjects, used for 2.5-level analysis.
+    """
+    maps_by_encounter_number = {}
+    for subj in contrast_maps:
+        for cname in contrast_maps[subj]:
+            if cname not in maps_by_encounter_number:
+                maps_by_encounter_number[cname] = {}
+            for idx, cmap in enumerate(contrast_maps[subj][cname]):
+                if idx not in maps_by_encounter_number[cname]:
+                    maps_by_encounter_number[cname][idx] = []
+                maps_by_encounter_number[cname][idx].append((cmap, subj))
+
+    # Assert all contrasts have exactly 5 maps
+    for cname in maps_by_encounter_number:
+        count = len(maps_by_encounter_number[cname])
+        assert count == 5, (
+            f"Contrast {cname} has {count} maps, expected 5"
+        )
+
+    return maps_by_encounter_number
+
+def plot_stat_map(
+    stat_map: nb.Nifti1Image,
+    threshold: float,
+    cname: str,
+    idx: int,
+    outdir: Path,
+    template: nb.Nifti1Image,
+    title: str = None,
+    cut_coords: tuple = (-10, 0, 10, 20, 30, 40, 50, 60, 70)
+):
+    """
+    Plots the statistical map.
+    """
+    fig = plt.figure(figsize=(12, 3))
+    plotting.plot_stat_map(
+        stat_map,
+        threshold=threshold,
+        display_mode='z',
+        cut_coords=cut_coords,
+        title=title,
+        figure=fig,
+        draw_cross=False,
+        annotate=True,
+        bg_img=template,
+        cmap='coolwarm',
     )
-    z_map = second_level_model.compute_contrast(
-        second_level_contrast='intersect',
-        first_level_contrast=contrast,
-        output_type='z_score'
-    )
-    return z_map
-
-def plot_glass_brain(z_map: str, out_dir: Path, task_name: str, contrast: str, threshold_z: float = 3.0):
-    display = plotting.plot_glass_brain(
-        z_map,
-        threshold=threshold_z,
-        title=f"Group {contrast} (Z > {threshold_z})",
-        black_bg=True,
-        display_mode="lyrz",
-    )
-    basename = f"task-{task_name}_contrast-{contrast}_glass_brain_threshold-{threshold_z}"
-    display.savefig(out_dir / f"{basename}.png")
+    outpath = outdir / cname / f'{cname}_encounter-{idx+1}_threshold-{threshold:.2f}.png'
+    outpath.parent.mkdir(parents=True, exist_ok=True)
+    plt.tight_layout()
+    plt.savefig(outpath)
+    logging.info(f"Saved plot to {outpath}")
+    plt.close()
 
 def main():
-    # Parse the command line arguments
+    logging.basicConfig(level=logging.INFO)
+
     parser = get_parser()
-    task_name = parser.parse_args().task_name
+    args = parser.parse_args()
 
-    if not task_name:
-        raise ValueError("Task name is required")
+    # == PATHS ==
+    outdir = Path('output_lev2_mni')
+    oak = Path('/oak/stanford/groups/russpold/data/')
+    bids_dir = oak / 'network_grant' / 'discovery_BIDS_20250402'
+    output_lev1_mni = bids_dir / 'derivatives' / 'output_lev1_mni'
 
-    in_dir = Path("./output_lev1_mni")
-    out_dir = Path(f"./output_lev2_mni/{task_name}")
-    glass_brain_dir = Path(f"./output_lev2_mni/{task_name}/glass_brain")
-    log10_pvals_dir = Path(f"./output_lev2_mni/{task_name}/log10_pvals")
-    glass_brain_dir.mkdir(parents=True, exist_ok=True)
-    log10_pvals_dir.mkdir(parents=True, exist_ok=True)
-    n_jobs = 4 
+    # == GET CONTRAST MAPS ==
+    contrast_maps = get_contrast_paths_by_subject_and_contrast_name(output_lev1_mni, args.task_name, args.contrast_name)
+    contrast_maps_sorted = sort_by_session_order(contrast_maps)
+    contrast_maps_by_encounter_number = sort_by_encounter_number(contrast_maps_sorted)
 
-    task_contrasts = get_all_task_contrasts(in_dir)
-    # dump_json(task_contrasts, "task_contrasts.json")
-    # print(f"Saved task contrasts to: ./task_contrasts.json")
-    
-    contrasts = task_contrasts.get(task_name, None)
-    if not contrasts:
-        raise ValueError(f"No contrasts found for task: {task_name}")
-    
-    print(f"Found {len(contrasts)} contrasts for {task_name}: \n{contrasts}")
+    # == THRESHOLDS ==
+    liberal_threshold = 1.0
+    alpha = 0.05
 
-    threshold_z = 3.0
-
-    subj_ids = get_subj_ids(in_dir)
-    print(f"Found {len(subj_ids)} subjects in {in_dir}")
-
-    # MNI template for background image
+    # == MNI TEMPLATE FOR BACKGROUND IMG ==
     template=tf.get('MNI152NLin2009cAsym', resolution=2, suffix="T1w", desc="brain")
-    cut_coords=(-10, 0, 10, 20, 30, 40, 50, 60, 70)
 
-    for contrast in contrasts:
-        files = get_all_fx_contrast_files(in_dir, task_name, contrast)
-        print(files)
-        print(f'Found {len(files)} fx contrast files for {contrast} in {in_dir}')
+    logging.info("Starting execution of second level GLMs")
+    # == LOOP THROUGH ALL CONTRASTS AND RUN SECOND LEVEL MODEL ==
+    for cname in contrast_maps_by_encounter_number:
+        for idx in contrast_maps_by_encounter_number[cname]:
+            # == CREATE DESIGN MATRIX ==
+            logging.info(f"Running GLM for contrast: {cname}, encounter: {idx+1}")
+            cmaps, subj_ids = zip(*contrast_maps_by_encounter_number[cname][idx])
+            cmaps = [nb.load(cmap) for cmap in cmaps]
+            subj_ids = [
+                np.float64(float(subj_id.replace('sub-s', '')))
+                for subj_id in subj_ids
+            ]
+            desmat = pd.DataFrame({
+                'intercept': 1,
+                'subject': subj_ids
+            })
 
-        assert len(subj_ids) == len(files), (
-            "Expected the number of subjects to match "
-            "the number of fx contrast files found in the directory."
-        )
-        assert len(files) > 1, ( 
-            f"Found only {len(files)} contrast file(s). "
-            "Second level analysis requires multiple inputs."
-        )
+            # == FIT SECOND LEVEL MODEL ==
+            second_level_model = SecondLevelModel(smoothing_fwhm=8.0)
+            second_level_model.fit(cmaps, design_matrix=desmat)
 
-        subject_info_df = pd.DataFrame({
-            'subject_label': subj_ids,
-            'intersect': [1] * len(subj_ids)
-        })
-        design_matrix_df = subject_info_df[['intersect']]
+            # == COMPUTE CONTRAST ==
+            z_map = second_level_model.compute_contrast(
+                second_level_contrast='intercept',
+                output_type='z_score'
+            )
 
-        print("Computing contrast...")
-        z_map = compute_contrast(files, design_matrix_df, contrast, threshold_z, n_jobs)
+            # == THRESHOLD MAP ==
+            thresholded_map, threshold = threshold_stats_img(
+                z_map, alpha=alpha, height_control='fpr'
+            )
 
-        print("Generating glass brain plot for the z-map...")
-        
-        # Glass brain plot
-        plot_glass_brain(z_map, glass_brain_dir, task_name, contrast, threshold_z)
-
-        print("Computing non-parametric p-values...")
-        neg_log10_vfwe_pvals_img = non_parametric_inference(
-            files,
-            design_matrix=design_matrix_df,
-            model_intercept=True,
-            n_perm=10000,
-            two_sided_test=False,
-            mask=None,
-            smoothing_fwhm=5.0,
-            n_jobs=n_jobs,
-        )
-
-        print("Generating stat map plot...")
-        max_value = np.max(neg_log10_vfwe_pvals_img.get_fdata())
-        min_value = np.min(neg_log10_vfwe_pvals_img.get_fdata())
-
-        if min_value < 0:
-            msg = f"Min value of neg_log10_vfwe_pvals_img is {min_value}. "
-            msg += "This is unexpected. Please check the data."
-            raise ValueError(msg)
-
-        threshold = 1
-        min_display_threshold = 0.5
-
-        effective_threshold = min(threshold, max_value) if max_value > min_display_threshold else 0
-
-        vmax = max(max_value, min_display_threshold)
-
-        title = f"Group {contrast} (Log P-values > {effective_threshold:.2f}, min: {min_value:.2f}, max: {max_value:.2f})"
-        display = plotting.plot_stat_map(
-            neg_log10_vfwe_pvals_img,
-            cut_coords=cut_coords,
-            threshold=effective_threshold,
-            title=title,
-            vmax=vmax,
-            vmin=0,
-            cmap="inferno",
-            draw_cross=False,
-            display_mode='z',
-            bg_img=template,
-        )
-        basename = f"task-{task_name}_contrast-{contrast}_stat_map_log_p_values"
-        display.savefig(log10_pvals_dir / f"{basename}.png")
-        neg_log10_vfwe_pvals_img.to_filename(log10_pvals_dir / f"{basename}.nii.gz")
-        print(f"Saved -log10(p-values) to: {log10_pvals_dir / f'{basename}.png'}")
-
+            # == PLOT MAPS (THRESHOLDED AND UNTHRESHOLDED) ==
+            plot_stat_map(thresholded_map, threshold, cname, idx, outdir, template, title=f'{cname} - Encounter #{idx+1} (FPR-corrected p < {alpha})')
+            plot_stat_map(z_map, liberal_threshold, cname, idx, outdir, template, title=f'{cname} - Encounter #{idx+1} (z > {liberal_threshold:.2f})')
 
     return
 

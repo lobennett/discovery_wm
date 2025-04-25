@@ -1,10 +1,10 @@
 #!/bin/bash
 #
 #SBATCH -J launch-all-lev2
-#SBATCH --time=00:05:00
+#SBATCH --time=1-00:00:00
 #SBATCH -n 1
-#SBATCH --cpus-per-task=1
-#SBATCH --mem-per-cpu=1G
+#SBATCH --cpus-per-task=4
+#SBATCH --mem-per-cpu=4G
 #SBATCH -p russpold,hns,normal 
 # Outputs ----------------------------------
 #SBATCH -o ./log/%x-%A-%a.out
@@ -18,30 +18,24 @@
 
 Name: launch_all_lev2.sbatch
 
-Description: This script launches all first-level models on a dataset. 
+Description: This script launches all second-level models on the discovery sample dataset. 
 
 Usage: sbatch ./batch/launch_all_lev2.sbatch
 
 Notes: 
 
 '
+# Run the second-level model script
+echo "Running all second-level models"
+second_level_script="src/discovery_wm/glm/second_level.py"
+cmd="uv run $second_level_script"
+echo "Running command: $cmd"
+$cmd
 
-# Define all task names
-TASKS=(
-    "cuedTS"
-    "directedForgetting"
-    "flanker"
-    "goNogo"
-    "nBack"
-    "shapeMatching"
-    "spatialTS"
-    "stopSignal"
-)
+# Zip the output directory after completion
+echo "Zipping output directory"
+cmd="zip -r output_lev2_mni.zip output_lev2_mni"
+echo "Running command: $cmd"
+$cmd
 
-# Launch first-level models for each task
-for task in "${TASKS[@]}"; do
-    echo "Launching second-level model for task: $task"
-    sbatch --job-name="lev2-model-${task}-mni" ./batch/lev2_model.sbatch "$task"
-done
-
-echo "All first-level models launched"
+exit $?
