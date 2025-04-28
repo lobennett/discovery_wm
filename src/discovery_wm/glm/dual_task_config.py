@@ -283,7 +283,7 @@ dual_tasks_config = {
         },
         "go_congruent": {
             "amplitude_column": "constant_1_column",
-            "duration_column": "co  nstant_1_column",
+            "duration_column": "constant_1_column",
             "subset": (
                 "key_press == correct_response and response_time >= 0.2 "
                 "and trial_type == 'go_congruent'"
