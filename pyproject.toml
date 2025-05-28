@@ -29,6 +29,7 @@ dev = [
     "python-dotenv>=1.0.1",
     "pytest>=8.3.4",
     "img2pdf>=0.6.0",
+    "miniqc>=23.1.1",
 ]
 
 [project.scripts]
