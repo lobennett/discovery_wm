@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from discovery_wm.utils import get_path_config, get_parser, get_subj_id
+from discovery_wm.utils import get_path_config, get_parser, get_subj_id, get_ses_task_run
 
 def preprocess_events(df):
     df.fillna({'trial_type': 'na'}, inplace=True)
@@ -22,7 +22,7 @@ def preprocess_confounds(df):
     return df.reset_index(drop=True)
 
 def main():
-    bids_dir, fmriprep_dir, _, _, tedana_transformed_dir, glm_data_dir, _ = get_path_config()
+    bids_dir, fmriprep_dir, _, tedana_denoised_dir, tedana_transformed_dir, glm_data_dir, _ = get_path_config()
 
     # Parse the command line arguments
     parser = get_parser()
@@ -32,6 +32,7 @@ def main():
     subj_bids_dir = Path(bids_dir / subj_id)
     subj_fmriprep_dir = Path(fmriprep_dir / subj_id)
     subj_tedana_dir = Path(tedana_transformed_dir / subj_id)
+    subj_tedana_denoised_dir = Path(tedana_denoised_dir / subj_id)
 
     # Directories to which we will move data
     glm_dir = Path(glm_data_dir / subj_id)
@@ -78,6 +79,23 @@ def main():
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
         shutil.copy2(file, dest_path)
 
+    # Copy over all tedana confounds 
+    tedana_mixing = sorted(subj_tedana_denoised_dir.glob("*/desc-ICA_mixing.tsv"))
+    tedana_status = sorted(subj_tedana_denoised_dir.glob("*/desc-ICA_status_table.tsv"))
+
+    for file in tedana_mixing + tedana_status:
+        ses, task, run = get_ses_task_run(file, use_parent=True)
+        rel_path = os.path.join(ses, "func")
+        dest_path = glm_dir / rel_path
+        os.makedirs(dest_path, exist_ok=True)
+        new_filename = f"{subj_id}_{ses}_{task}"
+        if run:
+            new_filename += f"_{run}"
+        desc_part = file.name.split("desc-")[1]
+        new_filename += f"_desc-{desc_part}"
+        print(f"Copying {file} to {dest_path / new_filename}")
+        shutil.copy2(file, dest_path / new_filename)
+    
     return
 
 if __name__ == "__main__":

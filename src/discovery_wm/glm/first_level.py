@@ -1,4 +1,5 @@
 from pathlib import Path
+# from discovery_wm.glm.qa import qa_design_matrix, add_to_html_summary, get_all_contrast_vif
 
 import numpy as np
 import pandas as pd
@@ -39,15 +40,41 @@ def calculate_mean_rt(files: dict, task_name: str):
     return np.mean(mean_rts)
 
 def get_nscans(datafile: Path):
-    return load_img(datafile).shape[3]
+    """
+    Get the number of timepoints from a 4D image file.
+    
+    Args:
+        datafile (Path): Path to the image file
+        
+    Returns:
+        int: Number of timepoints
+        
+    Raises:
+        ValueError: If the file cannot be read or doesn't have 4 dimensions
+    """
+    try:
+        img = load_img(datafile)
+        if len(img.shape) != 4:
+            raise ValueError(f"Image {datafile} does not have 4 dimensions (found {len(img.shape)})")
+        return img.shape[3]
+    except Exception as e:
+        raise ValueError(f"Failed to read image file {datafile}: {str(e)}") from e
 
-def get_files(subj_dir: Path, task_name: str, expected_file_count: int = 6):
-    # The reason expected_file_count is 4 is because
-    # - there are 4 files for each session:
-    # - events.tsv
-    # - optcom_bold.nii.gz
-    # - confounds_timeseries.tsv
-    # - brain_mask.nii.gz
+def get_files(subj_dir: Path, task_name: str, expected_file_count: int = 8):
+    """
+    Parse the GLM directory and return a dictionary of files.
+    
+    Files identified:
+    - "events": events.tsv file
+    - "confounds": desc-confounds_timeseries.tsv file
+    - "ica_mixing": ICA_mixing.tsv file
+    - "ica_status": ICA_status_table.tsv file
+    - "t1w_data": T1w_desc-optcom_bold.nii.gz file
+    - "t1w_brain_mask": T1w_desc-brain_mask.nii.gz file
+    - "mni_data": MNI152NLin2009cAsym_res-2_desc-optcom_bold.nii.gz file (when tedana transform is done)
+    - "mni_brain_mask": MNI152NLin2009cAsym_res-2_desc-brain_mask.nii.gz file (when tedana transform is done)
+    """
+
     files = {}
 
     for file in sorted(
@@ -64,12 +91,14 @@ def get_files(subj_dir: Path, task_name: str, expected_file_count: int = 6):
             files[session_name]["events"] = file
         elif "desc-confounds_timeseries.tsv" in file_name:
             files[session_name]["confounds"] = file
+        elif "ICA_mixing.tsv" in file_name:
+            files[session_name]["ica_mixing"] = file
+        elif "ICA_status_table.tsv" in file_name:
+            files[session_name]["ica_status"] = file
         elif "T1w_desc-optcom_bold.nii.gz" in file_name:
             files[session_name]["t1w_data"] = file
         elif "T1w_desc-brain_mask.nii.gz" in file_name:
             files[session_name]["t1w_brain_mask"] = file
-        ## TODO: Add these when tedana transform is done 
-        ## and derivatives are added to the glm_data directory. 
         elif "MNI152NLin2009cAsym_res-2_desc-optcom_bold.nii.gz" in file_name:
             files[session_name]["mni_data"] = file
         elif "MNI152NLin2009cAsym_res-2_desc-brain_mask.nii.gz" in file_name:
@@ -83,7 +112,7 @@ def get_files(subj_dir: Path, task_name: str, expected_file_count: int = 6):
     return files
 
 
-def get_confounds_tedana(confounds_file: Path, task_name: str, is_discovery_sample: bool):
+def get_fmriprep_confounds(confounds_file: Path, task_name: str, is_discovery_sample: bool):
     confounds_df = pd.read_csv(confounds_file, sep="\t", na_values=["n/a"]).fillna(0)
  
     if is_discovery_sample and task_name == 'nBack':
@@ -113,13 +142,72 @@ def get_confounds_tedana(confounds_file: Path, task_name: str, is_discovery_samp
                 'rot_z$|rot_z_derivative1$|rot_z_power2$|rot_z_derivative1_power2$'
             )
         )
-            
+                
     return confounds.reset_index(drop=True)
+
+
+def get_tedana_confounds(files, session, confounds_df=None):
+    """
+    Get the tedana rejected components to use as confounds.
+    
+    Args:
+        files (dict): Dictionary of session files from get_files function
+        session (str): Session name
+        confounds_df (pd.DataFrame, optional): Existing confounds dataframe to append to
+        
+    Returns:
+        pd.DataFrame: Confounds dataframe with tedana rejected components added
+    """
+    # Initialize confounds_df if None
+    if confounds_df is None:
+        confounds_df = pd.DataFrame()
+    
+    # Get the ICA mixing and status files
+    mixing_file = files[session]["ica_mixing"]
+    status_file = files[session]["ica_status"]
+    
+    # Read the mixing matrix
+    mixing_df = pd.read_csv(mixing_file, sep='\t')
+    
+    # Read the component classification table
+    status_df = pd.read_csv(status_file, sep='\t')
+    
+    # Find all node columns
+    node_columns = [col for col in status_df.columns if col.startswith('Node ')]
+    
+    if not node_columns:
+        raise ValueError("No Node columns found in ICA status table. Cannot determine rejected components.")
+    
+    # Get the last node column (assuming it has the final classification)
+    # Sort numerically to handle "Node 10" coming after "Node 2" etc.
+    node_columns = sorted(node_columns, key=lambda x: int(x.split(' ')[1]))
+    final_node = node_columns[-1]
+    
+    print(f"Using {final_node} as the final classification node: {status_df.columns}")
+    
+    # Filter to get only the rejected components
+    rejected_components = status_df[status_df[final_node] == 'rejected']['Component']
+    
+    # Create a dataframe with only the rejected components
+    if not rejected_components.empty:
+        rejected_df = mixing_df[rejected_components].reset_index(drop=True)
+        
+        # Rename columns to avoid conflicts
+        rejected_df = rejected_df.add_prefix('tedana_rejected__')
+        
+        # Combine with existing confounds
+        combined_confounds = pd.concat([confounds_df, rejected_df], axis=1)
+        print(f"Added {len(rejected_components)} tedana rejected components as confounds")
+        return combined_confounds
+    else:
+        print("No rejected components found")
+        return confounds_df
 
 
 def define_nuisance_trials(events_df: pd.DataFrame, task_name: str):
     # Add this line to handle missing values in trial_type
     events_df = events_df.copy()
+
     events_df['trial_type'] = events_df['trial_type'].fillna('n/a')
     
     if task_name in ["cuedTS", "nBack", "spatialTS", "flanker", "shapeMatching",
@@ -364,6 +452,50 @@ def prepare_results_dir(subject_id: str, task_name: str, results_dir: Path = Pat
         path.mkdir(parents=True, exist_ok=True)
     return tuple(paths)
 
+def log_session_files(session, files_dict):
+    """
+    Log session files in a readable format with status indicators.
+    
+    Args:
+        session (str): Session name/ID
+        files_dict (dict): Dictionary of file paths for the session
+    """
+    print(f"\n--- Files for {session} ---")
+    
+    # Define labels for each file type for better readability
+    labels = {
+        "events": "Events",
+        "t1w_data": "T1w data",
+        "confounds": "Confounds",
+        "t1w_brain_mask": "T1w brain mask",
+        "mni_data": "MNI data",
+        "mni_brain_mask": "MNI brain mask", 
+        "ica_mixing": "ICA mixing",
+        "ica_status": "ICA status"
+    }
+    
+    for key, label in labels.items():
+        file_path = files_dict.get(key)
+        
+        if file_path is None:
+            status = "❌ Missing"
+            path_str = "N/A"
+        elif not file_path.exists():
+            status = "⚠ Not found"
+            path_str = str(file_path)
+        elif file_path.stat().st_size == 0:
+            status = "⚠ Empty"
+            path_str = str(file_path)
+        else:
+            status = "✓ Found"
+            path_str = str(file_path)
+        
+        # Format path to be more readable - show only the end part if it's long
+        if len(path_str) > 60:
+            path_str = f"...{path_str[-57:]}"
+        
+        print(f"{status} | {label:<15} | {path_str}")
+
 def main():
     _, _, _, _, _, glm_data_dir, _ = get_path_config()
 
@@ -378,7 +510,7 @@ def main():
     # - output for each of the models and
     # - quality control files for each model
     _, quality_control_dir, indiv_contrasts_dir, fixed_effects_dir, \
-        simplified_events_dir = prepare_results_dir(subj_id, task_name)
+        simplified_events_dir = prepare_results_dir(subj_id, task_name, Path("output_lev1_mni_no_ted_comp"))
     
     # Prepare data directory
     # - This directory contains the BIDS data
@@ -408,32 +540,32 @@ def main():
     for session in files:
         print(f'Processing session {session}')
 
-        # Get files for the current session which
-        # we are processing.
+        # Get files for the current session
         events = files[session]["events"]
         t1w_data = files[session]["t1w_data"]
         confounds = files[session]["confounds"]
         t1w_brain_mask = files[session]["t1w_brain_mask"]
         mni_data = files[session]["mni_data"]
         mni_brain_mask = files[session]["mni_brain_mask"]
-
-        print(events)
-        print(t1w_data)
-        print(confounds)
-        print(t1w_brain_mask)
-        print(mni_data)
-        print(mni_brain_mask)
+        ica_mixing = files[session]["ica_mixing"]
+        ica_status = files[session]["ica_status"]
+    
+        # Log all files for this session
+        # TODO: Check this logging in next run
+        log_session_files(session, files[session])
 
         # Get the number of timepoints in the current session
         # - this is used to create the regressors
         # nscans = get_nscans(t1w_data)
         nscans = get_nscans(mni_data)
 
-        # TEDANA CONFOUNDS
         # - These are the confounds that are created by TEDANA / FMRIPREP
         # - These map onto motion parameters
         # TODO: change flag if running validation sample. 
-        confound_regressors = get_confounds_tedana(confounds, task_name, is_discovery_sample=True)
+        confound_regressors = get_fmriprep_confounds(confounds, task_name, is_discovery_sample=True)
+
+        # # Add tedana rejected components to confounds
+        # confound_regressors = get_tedana_confounds(files, session, confound_regressors)
 
         # EVENTS
         # - These are the events corresponding to the task
@@ -448,7 +580,7 @@ def main():
 
         # TODO: Add to quality control
         # Remove unused variable or use it
-        # percent_junk = np.mean(events_df["junk_trials"])
+        percent_junk = np.mean(events_df["junk_trials"])
 
         # Add column containing all 1s
         events_df["constant_1_column"] = 1
@@ -468,7 +600,7 @@ def main():
         regressors_dict, regressor_dfs = create_regressors_from_config(
             regressor_config, events_df, nscans, tr, task_name
         )
-  
+
         # Create design matrix
         design_matrix = pd.concat(
             [regressors_dict[name] for name in regressors_dict] + [confound_regressors],
@@ -485,6 +617,33 @@ def main():
         # Get contrasts from config for task
         contrasts = contrasts_config[task_name]
         design_matrix['constant'] = 1
+
+        # exclusion, any_fail = qa_design_matrix(
+        #     indiv_contrasts_dir,
+        #     contrasts,
+        #     design_matrix,
+        #     subj_id,
+        #     task_name,
+        #     session,
+        #     percent_junk=percent_junk,
+        # )
+
+        # add_to_html_summary(
+        #     subj_id,
+        #     contrasts,
+        #     design_matrix,
+        #     indiv_contrasts_dir,
+        #     regress_rt="response_time_centered",
+        #     duration_choice="constant",
+        #     task=task_name,
+        #     any_fail=any_fail,
+        #     exclusion=exclusion,
+        #     session=session,
+        #     percent_junk=percent_junk,
+        #     model_break=True,
+        #     add_deriv=False,
+        #     only_breaks_with_performance_feedback=True
+        # )
 
         # Fit GLM to the data
         fmri_glm = FirstLevelModel(
@@ -560,7 +719,15 @@ def main():
             )
         ]
 
-        assert len(effects_files) == len(variances_files) == len(z_scores_files)
+        if not (len(effects_files) == len(variances_files) == len(z_scores_files)):
+            error_msg = (
+                f"File count mismatch for contrast '{contrast_name}':\n"
+                f"  - Effects files: {len(effects_files)}\n"
+                f"  - Variance files: {len(variances_files)}\n"
+                f"  - Z-score files: {len(z_scores_files)}\n"
+            )
+            print(error_msg)
+            assert False, error_msg
 
         fixed_fx_contrast, fixed_fx_variance, fixed_fx_stat = compute_fixed_effects(
             effects_files, variances_files, precision_weighted=True

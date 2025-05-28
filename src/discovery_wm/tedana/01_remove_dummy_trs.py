@@ -99,7 +99,6 @@ def main():
         nb.save(trimmed_img, outfile)
         logging.info(f"Saved trimmed bold to {outfile}")
 
-
     return
 
 if __name__ == "__main__":
