@@ -48,6 +48,10 @@ def generate_png_files(contrast_labels, zpaths_vifs_df, output_dir):
             zpaths_vifs_df['task_contrast'] == con_label
         ].copy()
 
+        # Sort by subject number and session number
+        filtered_df['subject_num'] = filtered_df['subid'].str.split('-s').str[1].astype(int)
+        filtered_df = filtered_df.sort_values(['subject_num', 'session'])
+
         # Generate the masked data and plot
         try:
             concatenated_img = nib.concat_images(filtered_df['zstat_files'])

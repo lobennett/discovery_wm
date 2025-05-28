@@ -50,6 +50,14 @@ def generate_png_files(contrast_labels, zpaths_vifs_df, output_dir):
             zpaths_vifs_df['task_contrast'] == con_label
         ].copy()
 
+        if len(filtered_df) == 0:
+            print(f'No data found for contrast: {con_label}')
+            continue
+
+        # Sort by subject number and session number
+        filtered_df['subject_num'] = filtered_df['subid'].str.split('-s').str[1].astype(int)
+        filtered_df = filtered_df.sort_values(['subject_num', 'session'])
+
         # Generate the masked data and plot
         try:
             n_rows = len(filtered_df)
