@@ -3,7 +3,7 @@
 # Job name specified from launch script. 
 #SBATCH --time=00:30:00
 #SBATCH -n 1
-#SBATCH --array 2
+#SBATCH --array 1%2
 #SBATCH --cpus-per-task=8
 #SBATCH --mem-per-cpu=8G
 #SBATCH -p russpold,hns,normal 
@@ -38,9 +38,8 @@ source ./batch/setup_env.sh
 
 # Script names 
 first_level_script="src/discovery_wm/glm/first_level.py"
-carpet_plots_script="src/discovery_wm/glm/create_carpet_plots.py"
-brain_maps_script="src/discovery_wm/glm/create_brain_maps.py"
-
+# carpet_plots_script="src/discovery_wm/glm/create_carpet_plots.py"
+# brain_maps_script="src/discovery_wm/glm/create_brain_maps.py"
 
 # Get the subject ID from the command line arguments
 subject=$( sed "${SLURM_ARRAY_TASK_ID}q;d" ${ALL_SUBJECTS_FILE} )
@@ -52,14 +51,14 @@ cmd="uv run $first_level_script --subj-id $subject --task-name $TASK_NAME"
 echo "Running command: $cmd"
 $cmd
 
-# Create carpet plots
-cmd="uv run $carpet_plots_script --subj-id $subject --task-name $TASK_NAME"
-echo "Running command: $cmd"
-$cmd
+# # Create carpet plots
+# cmd="uv run $carpet_plots_script --subj-id $subject --task-name $TASK_NAME"
+# echo "Running command: $cmd"
+# $cmd
 
-# Create brain maps
-cmd="uv run $brain_maps_script --subj-id $subject --task-name $TASK_NAME"
-echo "Running command: $cmd"
-$cmd
+# # Create brain maps
+# cmd="uv run $brain_maps_script --subj-id $subject --task-name $TASK_NAME"
+# echo "Running command: $cmd"
+# $cmd
 
 exit $? 
