@@ -10,7 +10,7 @@
 # Outputs ----------------------------------
 #SBATCH -o ./log/%x-%A-%a.out
 #SBATCH -e ./log/%x-%A-%a.err
-#SBATCH --mail-user=logben@stanford.edu
+#SBATCH --mail-user=kritiach@stanford.edu
 #SBATCH --mail-type=END
 # ------------------------------------------
 

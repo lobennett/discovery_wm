@@ -11,29 +11,35 @@ from nilearn.glm.first_level import (
 from nilearn.image import load_img
 
 from discovery_wm.glm.config import contrasts_config, regressor_config
+from discovery_wm.glm.dual_task_config import dual_tasks_config, dual_tasks_regressor_config
 from discovery_wm.glm.quality_control import get_all_contrast_vif
-from discovery_wm.utils import get_path_config, get_parser, get_subj_id 
+from discovery_wm.utils import get_path_config, get_parser, get_subj_id
 
 def get_mean_rt_query(task_name: str):
     if 'stopSignal' in task_name:
         return (
-            "(trial_id == 'test_trial' and "
-            "((trial_type == 'go' and response_time >= 0.2 and key_press == correct_response) or "
-            "(trial_type == 'stop_failure' and response_time >= 0.2)))"
+            "(trial_id == 'test_trial' and ("
+            "((trial_type == 'go') | (trial_type == 'go_pos') | (trial_type == 'go_neg') | (trial_type == 'go_con') | (trial_type == 'go_congruent') | (trial_type == 'go_incongruent')) & "  # Use | for OR
+            "(response_time >= 0.2) & (key_press == correct_response) | "  # Use & for AND
+            "((trial_type == 'stop_failure') | (trial_type == 'stop_failure_pos') | (trial_type == 'stop_failure_neg') | (trial_type == 'stop_failure_con') | (trial_type == 'stop_failure_congruent') | (trial_type == 'stop_failure_incongruent')) & "
+            "(response_time >= 0.2)))"
         )
-    
+
     return (
-        "key_press == correct_response and trial_id == 'test_trial' and response_time >= 0.2"
+        "(key_press == correct_response) & (trial_id == 'test_trial') & (response_time >= 0.2)"  # Use & for AND
     )
 
 def calculate_mean_rt(files: dict, task_name: str):
     mean_rts = []
     query_string = get_mean_rt_query(task_name)
+    print(f'query_string: {query_string}')
     
     for session in files:
         # Read the events file once and store in df
         df = pd.read_csv(files[session]["events"], sep='\t')
         subset = df.query(query_string)
+        print(f'Subset: {subset}')
+        print(f'Subset[response time]: {subset['response_time']}')
         mean_rt = subset['response_time'].mean()
         mean_rts.append(mean_rt)
         
@@ -60,7 +66,7 @@ def get_nscans(datafile: Path):
     except Exception as e:
         raise ValueError(f"Failed to read image file {datafile}: {str(e)}") from e
 
-def get_files(subj_dir: Path, task_name: str, expected_file_count: int = 8):
+def get_files(subj_dir: Path, task_name: str, expected_file_count: int = 6):
     """
     Parse the GLM directory and return a dictionary of files.
     
@@ -91,10 +97,10 @@ def get_files(subj_dir: Path, task_name: str, expected_file_count: int = 8):
             files[session_name]["events"] = file
         elif "desc-confounds_timeseries.tsv" in file_name:
             files[session_name]["confounds"] = file
-        elif "ICA_mixing.tsv" in file_name:
-            files[session_name]["ica_mixing"] = file
-        elif "ICA_status_table.tsv" in file_name:
-            files[session_name]["ica_status"] = file
+        # elif "ICA_mixing.tsv" in file_name:
+        #     files[session_name]["ica_mixing"] = file
+        # elif "ICA_status_table.tsv" in file_name:
+        #     files[session_name]["ica_status"] = file
         elif "T1w_desc-optcom_bold.nii.gz" in file_name:
             files[session_name]["t1w_data"] = file
         elif "T1w_desc-brain_mask.nii.gz" in file_name:
@@ -163,8 +169,8 @@ def get_tedana_confounds(files, session, confounds_df=None):
         confounds_df = pd.DataFrame()
     
     # Get the ICA mixing and status files
-    mixing_file = files[session]["ica_mixing"]
-    status_file = files[session]["ica_status"]
+    # mixing_file = files[session]["ica_mixing"]
+    # status_file = files[session]["ica_status"]
     
     # Read the mixing matrix
     mixing_df = pd.read_csv(mixing_file, sep='\t')
@@ -496,6 +502,16 @@ def log_session_files(session, files_dict):
         
         print(f"{status} | {label:<15} | {path_str}")
 
+def is_dual_task(task_name):
+    return 'W' in task_name
+
+def get_task_configs(task_name):
+    """Return the appropriate regressor and contrast configs for the task."""
+    if is_dual_task(task_name):
+        return dual_tasks_regressor_config, dual_tasks_config
+    else:
+        return regressor_config, contrasts_config
+
 def main():
     _, _, _, _, _, glm_data_dir, _ = get_path_config()
 
@@ -531,11 +547,11 @@ def main():
     print("Mean RT: ", mean_rt)
     print("The following files will be used for the first-level model: ", files)
 
-    # Get contrasts from config for task
-    contrasts = contrasts_config[task_name]
-    # Get all contrast names upfront, before session processing
+    # Get configs for this task
+    reg_config, contrast_config = get_task_configs(task_name)
+    contrasts = contrast_config[task_name]
     all_contrast_names = list(contrasts.keys())
-    
+
     # Process each session
     for session in files:
         print(f'Processing session {session}')
@@ -547,8 +563,8 @@ def main():
         t1w_brain_mask = files[session]["t1w_brain_mask"]
         mni_data = files[session]["mni_data"]
         mni_brain_mask = files[session]["mni_brain_mask"]
-        ica_mixing = files[session]["ica_mixing"]
-        ica_status = files[session]["ica_status"]
+        # ica_mixing = files[session]["ica_mixing"]
+        # ica_status = files[session]["ica_status"]
     
         # Log all files for this session
         # TODO: Check this logging in next run
@@ -590,7 +606,7 @@ def main():
 
         # Add break period if needed
         if model_break:
-            regressor_config[task_name]["break_period"] = {
+            reg_config[task_name]["break_period"] = {
                 "amplitude_column": "constant_1_column",
                 "duration_column": "duration",
                 "subset": 'trial_id == "break_with_performance_feedback"',
@@ -598,7 +614,7 @@ def main():
 
         # Create regressors from config
         regressors_dict, regressor_dfs = create_regressors_from_config(
-            regressor_config, events_df, nscans, tr, task_name
+            reg_config, events_df, nscans, tr, task_name
         )
 
         # Create design matrix
@@ -614,9 +630,10 @@ def main():
             index=False
         )
 
-        # Get contrasts from config for task
-        contrasts = contrasts_config[task_name]
         design_matrix['constant'] = 1
+
+        # Print design matrix column names for debugging
+        print("Design matrix columns:", design_matrix.columns.tolist())
 
         # exclusion, any_fail = qa_design_matrix(
         #     indiv_contrasts_dir,
