@@ -1080,6 +1080,199 @@ dual_tasks_regressor_config = {
                 "key_press == correct_response and response_time >= 0.2"
             ),
         }
+    },
+    "shapeMatchingWCuedTS": {
+        "omission": {
+            "amplitude_column": "omission",
+            "duration_column": "constant_1_column",
+            "subset": None,
+        },
+        "commission": {
+            "amplitude_column": "commission",
+            "duration_column": "constant_1_column",
+            "subset": None,
+        },
+        "rt_fast": {
+            "amplitude_column": "rt_fast",
+            "duration_column": "constant_1_column",
+            "subset": None,
+        },
+        "SSS_tswitch_cswitch": {
+            "amplitude_column": "constant_1_column",
+            "duration_column": "constant_1_column",
+            "subset": (
+                "key_press == correct_response and response_time >= 0.2 and "
+                "trial_type == 'SSS_tswitch_cswitch'"
+            ),
+        },
+        "SSS_tstay_cswitch": {
+            "amplitude_column": "constant_1_column",
+            "duration_column": "constant_1_column",
+            "subset": (
+                "key_press == correct_response and response_time >= 0.2 and "
+                "trial_type == 'SSS_tstay_cswitch'"
+            ),
+        },
+        "SSS_tstay_cstay": {
+            "amplitude_column": "constant_1_column",
+            "duration_column": "constant_1_column",
+            "subset": (
+                "key_press == correct_response and response_time >= 0.2 and "
+                "trial_type == 'SSS_tstay_cstay'"
+            ),
+        },
+        "SDD_tswitch_cswitch": {
+            "amplitude_column": "constant_1_column",
+            "duration_column": "constant_1_column",
+            "subset": (
+                "key_press == correct_response and response_time >= 0.2 and "
+                "trial_type == 'SDD_tswitch_cswitch'"
+            ),
+        },
+        "SDD_tstay_cswitch": {
+            "amplitude_column": "constant_1_column",
+            "duration_column": "constant_1_column",
+            "subset": (
+                "key_press == correct_response and response_time >= 0.2 and "
+                "trial_type == 'SDD_tstay_cswitch'"
+            ),
+        },
+        "SDD_tstay_cstay": {
+            "amplitude_column": "constant_1_column",
+            "duration_column": "constant_1_column",
+            "subset": (
+                "key_press == correct_response and response_time >= 0.2 and "
+                "trial_type == 'SDD_tstay_cstay'"
+            ),
+        }, 
+        "SNN_tswitch_cswitch": {
+            "amplitude_column": "constant_1_column",
+            "duration_column": "constant_1_column",
+            "subset": (
+                "key_press == correct_response and response_time >= 0.2 and "
+                "trial_type == 'SNN_tswitch_cswitch'"
+            ),
+        },
+        "SNN_tstay_cswitch": {
+            "amplitude_column": "constant_1_column",
+            "duration_column": "constant_1_column",
+            "subset": (
+                "key_press == correct_response and response_time >= 0.2 and "
+                "trial_type == 'SNN_tstay_cswitch'"
+            ),
+        },
+        "SNN_tstay_cstay": {
+            "amplitude_column": "constant_1_column",
+            "duration_column": "constant_1_column",
+            "subset": (
+                "key_press == correct_response and response_time >= 0.2 and "
+                "trial_type == 'SNN_tstay_cstay'"
+            ),
+        },
+        "DSD_tswitch_cswitch": {
+            "amplitude_column": "constant_1_column",
+            "duration_column": "constant_1_column",
+            "subset": (
+                "key_press == correct_response and response_time >= 0.2 and "
+                "trial_type == 'DSD_tswitch_cswitch'"
+            ),
+        },
+        "DSD_tstay_cswitch": {
+            "amplitude_column": "constant_1_column",
+            "duration_column": "constant_1_column",
+            "subset": (
+                "key_press == correct_response and response_time >= 0.2 and "
+                "trial_type == 'DSD_tstay_cswitch'"
+            ),
+        },
+        "DSD_tstay_cstay": {
+            "amplitude_column": "constant_1_column",
+            "duration_column": "constant_1_column",
+            "subset": (
+                "key_press == correct_response and response_time >= 0.2 and "
+                "trial_type == 'DSD_tstay_cstay'"
+            ),
+        },
+        "DDD_tswitch_cswitch": {
+            "amplitude_column": "constant_1_column",
+            "duration_column": "constant_1_column",
+            "subset": (
+                "key_press == correct_response and response_time >= 0.2 and "
+                "trial_type == 'DDD_tswitch_cswitch'"
+            ),
+        },
+        "DDD_tstay_cswitch": {
+            "amplitude_column": "constant_1_column",
+            "duration_column": "constant_1_column",
+            "subset": (
+                "key_press == correct_response and response_time >= 0.2 and "
+                "trial_type == 'DDD_tstay_cswitch'"
+            ),
+        },
+        "DDD_tstay_cstay": {
+            "amplitude_column": "constant_1_column",
+            "duration_column": "constant_1_column",
+            "subset": (
+                "key_press == correct_response and response_time >= 0.2 and "
+                "trial_type == 'DDD_tstay_cstay'"
+            ),
+        },
+        "DDS_tswitch_cswitch": {
+            "amplitude_column": "constant_1_column",
+            "duration_column": "constant_1_column",
+            "subset": (
+                "key_press == correct_response and response_time >= 0.2 and "
+                "trial_type == 'DDS_tswitch_cswitch'"
+            ),
+        },
+        "DDS_tstay_cswitch": {
+            "amplitude_column": "constant_1_column",
+            "duration_column": "constant_1_column",
+            "subset": (
+                "key_press == correct_response and response_time >= 0.2 and "
+                "trial_type == 'DDS_tstay_cswitch'"
+            ),
+        },
+        "DDS_tstay_cstay": {
+            "amplitude_column": "constant_1_column",
+            "duration_column": "constant_1_column",
+            "subset": (
+                "key_press == correct_response and response_time >= 0.2 and "
+                "trial_type == 'DDS_tstay_cstay'"
+            ),
+        },
+        "DNN_tswitch_cswitch": {
+            "amplitude_column": "constant_1_column",
+            "duration_column": "constant_1_column",
+            "subset": (
+                "key_press == correct_response and response_time >= 0.2 and "
+                "trial_type == 'DNN_tswitch_cswitch'"
+            ),
+        },
+        "DNN_tstay_cswitch": {
+            "amplitude_column": "constant_1_column",   
+            "duration_column": "constant_1_column",
+            "subset": (
+                "key_press == correct_response and response_time >= 0.2 and "
+                "trial_type == 'DNN_tstay_cswitch'"
+            ),
+        },
+        "DNN_tstay_cstay": {
+            "amplitude_column": "constant_1_column",
+            "duration_column": "constant_1_column",
+            "subset": (
+                "key_press == correct_response and response_time >= 0.2 and "
+                "trial_type == 'DNN_tstay_cstay'"
+            ),
+        },
+        "response_time": {
+            "amplitude_column": "response_time_centered",
+            "duration_column": "constant_1_column",
+            "subset": (
+                "key_press == correct_response and response_time >= 0.2 and "
+                "trial_id == 'test_trial'"
+            ),
+        }
     }
 }
 
@@ -1677,6 +1870,99 @@ dual_tasks_config = {
             "match_tstay_cstay_1back+match_tstay_cswitch_1back+match_tswitch_cswitch_1back+mismatch_tstay_cstay_2back+"
             "mismatch_tstay_cswitch_2back+mismatch_tswitch_cswitch_2back+match_tstay_cstay_2back+match_tstay_cswitch_2back+"
             "match_tswitch_cswitch_2back)"
+            ),
+
+        "response_time": "response_time"
+    },
+    "shapeMatchingWCuedTS": {
+        "SSS_tswitch_cswitch": "SSS_tswitch_cswitch",
+        "SSS_tstay_cswitch": "SSS_tstay_cswitch",
+        "SSS_tstay_cstay": "SSS_tstay_cstay",
+        "SDD_tswitch_cswitch": "SDD_tswitch_cswitch",
+        "SDD_tstay_cswitch": "SDD_tstay_cswitch",
+        "SDD_tstay_cstay": "SDD_tstay_cstay",
+        "SNN_tswitch_cswitch": "SNN_tswitch_cswitch",
+        "SNN_tstay_cswitch": "SNN_tstay_cswitch",
+        "SNN_tstay_cstay": "SNN_tstay_cstay",
+        "DSD_tswitch_cswitch": "DSD_tswitch_cswitch",
+        "DSD_tstay_cswitch": "DSD_tstay_cswitch",
+        "DSD_tstay_cstay": "DSD_tstay_cstay",
+        "DDD_tswitch_cswitch": "DDD_tswitch_cswitch",
+        "DDD_tstay_cswitch": "DDD_tstay_cswitch",
+        "DDD_tstay_cstay": "DDD_tstay_cstay",
+        "DDS_tswitch_cswitch": "DDS_tswitch_cswitch",
+        "DDS_tstay_cswitch": "DDS_tstay_cswitch",
+        "DDS_tstay_cstay": "DDS_tstay_cstay",
+        "DNN_tswitch_cswitch": "DNN_tswitch_cswitch",
+        "DNN_tstay_cswitch": "DNN_tstay_cswitch",
+        "DNN_tstay_cstay": "DNN_tstay_cstay",
+         #cuedTS cue switch cost while shapeMatching is "off"
+        "(SNN_tstay_cswitch+DNN_tstay_cswitch)-(SNN_tstay_cstay+DNN_tstay_cstay)": (
+            "1/2*(SNN_tstay_cswitch+DNN_tstay_cswitch)-1/2*(SNN_tstay_cstay+DNN_tstay_cstay)"
+            ),
+
+        #cuedTS task switch cost while shapeMatching is "off"
+        "(SNN_tswitch_cswitch+DNN_tswitch_cswitch)-(SNN_tstay_cswitch+DNN_tstay_cswitch)": (
+            "1/2*(SNN_tswitch_cswitch+DNN_tswitch_cswitch)-1/2*(SNN_tstay_cswitch+DNN_tstay_cswitch)"
+            ),
+
+        #main vars while cuedTS is "off"
+        "(SDD_tstay_cstay+DDD_tstay_cstay+DDS_tstay_cstay)-(SNN_tstay_cstay+DNN_tstay_cstay)": (
+            "1/3*(SDD_tstay_cstay+DDD_tstay_cstay+DDS_tstay_cstay)-1/2*(SNN_tstay_cstay+DNN_tstay_cstay)"
+            ),
+
+        #cuedTS cue switch cost across all other shapeMatching trial types
+        "(SSS_tstay_cswitch+SDD_tstay_cswitch+SNN_tstay_cswitch+DSD_tstay_cswitch+DNN_tstay_cswitch+DDD_tstay_cswitch+DDS_tstay_cswitch)-"
+        "(SSS_tstay_cstay+SDD_tstay_cstay+SNN_tstay_cstay+DSD_tstay_cstay+DNN_tstay_cstay+DDD_tstay_cstay+DDS_tstay_cstay)": (
+            "1/7*(SSS_tstay_cswitch+SDD_tstay_cswitch+SNN_tstay_cswitch+DSD_tstay_cswitch+DNN_tstay_cswitch+DDD_tstay_cswitch+DDS_tstay_cswitch)-"
+            "1/7*(SSS_tstay_cstay+SDD_tstay_cstay+SNN_tstay_cstay+DSD_tstay_cstay+DNN_tstay_cstay+DDD_tstay_cstay+DDS_tstay_cstay)"
+            ),
+
+        #cuedTS task switch cost across all other shapeMatching trial types
+        "(SSS_tswitch_cswitch+SDD_tswitch_cswitch+SNN_tswitch_cswitch+"
+        "DSD_tswitch_cswitch+DNN_tswitch_cswitch+DDD_tswitch_cswitch+DDS_tswitch_cswitch)-"
+        "(SSS_tstay_cswitch+SDD_tstay_cswitch+SNN_tstay_cswitch+DSD_tstay_cswitch+"
+        "DNN_tstay_cswitch+DDD_tstay_cswitch+DDS_tstay_cswitch)": (
+            "1/7*(SSS_tswitch_cswitch+SDD_tswitch_cswitch+SNN_tswitch_cswitch+DSD_tswitch_cswitch+"
+            "DNN_tswitch_cswitch+DDD_tswitch_cswitch+DDS_tswitch_cswitch)-"
+            "1/7*(SSS_tstay_cswitch+SDD_tstay_cswitch+SNN_tstay_cswitch+DSD_tstay_cswitch+"
+            "DNN_tstay_cswitch+DDD_tstay_cswitch+DDS_tstay_cswitch)"
+            ),
+
+        #main vars across all other cuedTS trial types
+        "(SDD_tstay_cstay+DDD_tstay_cstay+DDS_tstay_cstay+SDD_tstay_cswitch+DDD_tstay_cswitch+"
+        "DDS_tstay_cswitch+SDD_tswitch_cswitch+DDD_tswitch_cswitch+DDS_tswitch_cswitch)-"
+        "(SNN_tstay_cstay+DNN_tstay_cstay+SNN_tstay_cswitch+DNN_tstay_cswitch+SNN_tswitch_cswitch+DNN_tswitch_cswitch)": (
+            "1/9*(SDD_tstay_cstay+DDD_tstay_cstay+DDS_tstay_cstay+SDD_tstay_cswitch+"
+            "DDD_tstay_cswitch+DDS_tstay_cswitch+SDD_tswitch_cswitch+DDD_tswitch_cswitch+DDS_tswitch_cswitch)-"
+            "1/6*(SNN_tstay_cstay+DNN_tstay_cstay+SNN_tstay_cswitch+DNN_tstay_cswitch+SNN_tswitch_cswitch+DNN_tswitch_cswitch)"
+            ),
+
+        #interaction for cue switch cost
+        "((SDD_tstay_cswitch+DDD_tstay_cswitch+DDS_tstay_cswitch)-(SDD_tstay_cstay+DDD_tstay_cstay+DDS_tstay_cstay))-"
+        "((SNN_tstay_cswitch+DNN_tstay_cswitch)-(SNN_tstay_cstay+DNN_tstay_cstay))": (
+            "1/3*(SDD_tstay_cswitch+DDD_tstay_cswitch+DDS_tstay_cswitch)-"
+            "1/3*(SDD_tstay_cstay+DDD_tstay_cstay+DDS_tstay_cstay)-"
+            "1/2*(SNN_tstay_cswitch+DNN_tstay_cswitch)"
+            "+1/2*(SNN_tstay_cstay+DNN_tstay_cstay)"
+            ),
+
+        #interaction for task switch cost
+        "((SDD_tswitch_cswitch+DDD_tswitch_cswitch+DDS_tswitch_cswitch)-"
+        "(SDD_tstay_cswitch+DDD_tstay_cswitch+DDS_tstay_cswitch))-"
+        "((SNN_tswitch_cswitch+DNN_tswitch_cswitch)-"
+        "(SNN_tstay_cswitch+DNN_tstay_cswitch))": (
+            "1/3*(SDD_tswitch_cswitch+DDD_tswitch_cswitch+DDS_tswitch_cswitch)-"
+            "1/3*(SDD_tstay_cswitch+DDD_tstay_cswitch+DDS_tstay_cswitch)-"
+            "1/2*(SNN_tswitch_cswitch+DNN_tswitch_cswitch)+"
+            "1/2*(SNN_tstay_cswitch+DNN_tstay_cswitch)"
+            ),
+
+        #task - baseline
+        "task-baseline": (
+            "1/21*(SSS_tstay_cstay+SDD_tstay_cstay+SNN_tstay_cstay+DSD_tstay_cstay+DNN_tstay_cstay+DDD_tstay_cstay+DDS_tstay_cstay+"
+            "SSS_tstay_cswitch+SDD_tstay_cswitch+SNN_tstay_cswitch+DSD_tstay_cswitch+DNN_tstay_cswitch+DDD_tstay_cswitch+DDS_tstay_cswitch+"
+            "SSS_tswitch_cswitch+SDD_tswitch_cswitch+SNN_tswitch_cswitch+DSD_tswitch_cswitch+DNN_tswitch_cswitch+DDD_tswitch_cswitch+DDS_tswitch_cswitch)"
             ),
 
         "response_time": "response_time"

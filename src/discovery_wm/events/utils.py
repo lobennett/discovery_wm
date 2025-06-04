@@ -63,9 +63,11 @@ def get_cols_list(exp_id):
                 'spatial_task_switching_with_cued_task_switching__fmri': common + ['task_switch', 'whichQuadrant', 'left_number', 'right_number', 'curr_cue'],
                 'flanker_with_shape_matching__fmri': common + ['flanker_condition', 'shape_matching_condition', 'flankers', 'probe', 'target', 'distractor'],
                 'flanker_with_cued_task_switching__fmri': common + ['flanker_condition', 'cue', 'task_condition', 'cue_condition', 'flanking_number'],
+                'flanker_with_cued_task_switching': common + ['flanker_condition', 'cue', 'task_condition', 'cue_condition', 'flanking_number'],
                 'n_back_with_shape_matching__fmri': common + ['n_back_condition', 'shape_matching_condition', 'probe', 'distractor', 'delay'],
                 'shape_matching_with_spatial_task_switching__fmri': common + ['shape_matching_condition', 'task_switch', 'probe', 'target', 'distractor', 'whichQuadrant'],
                 'shape_matching_with_cued_task_switching__fmri': common + ['cue', 'task_condition', 'cue_condition', 'shape_matching_condition', 'probe', 'target', 'distractor'],
+                'shape_matching_with_cued_task_switching': common + ['cue', 'task_condition', 'cue_condition', 'shape_matching_condition', 'probe', 'target', 'distractor'],
                 'n_back_with_spatial_task_switching__fmri': common + ['n_back_condition', 'task', 'probe', 'whichQuadrant']}
     to_add = lookup.get(exp_id)
     return to_add
@@ -94,8 +96,10 @@ def get_trial_type(exp_id):
             'spatial_task_switching_with_cued_task_switching__fmri': ['task_switch'],
             'flanker_with_shape_matching__fmri': ['flanker_condition', 'shape_matching_condition'],
             'flanker_with_cued_task_switching__fmri': ['cue_condition', 'task_condition', 'flanker_condition'],
+            'flanker_with_cued_task_switching': ['cue_condition', 'task_condition', 'flanker_condition'],
             'n_back_with_shape_matching__fmri': ['n_back_condition', 'shape_matching_condition', 'delay'],
             'shape_matching_with_spatial_task_switching__fmri': ['predictable_condition', 'shape_matching_condition'],
+            'shape_matching_with_spatial_task_switching': ['predictable_condition', 'shape_matching_condition'],
             'shape_matching_with_cued_task_switching__fmri': ['task_condition', 'cue_condition', 'shape_matching_condition'],
             'n_back_with_spatial_task_switching__fmri': ['n_back_condition', 'task_switch_condition']
     }
