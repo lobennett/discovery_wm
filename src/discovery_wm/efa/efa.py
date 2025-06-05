@@ -179,48 +179,51 @@ def _HornParallelAnalysis(data, K=10, printEigenvalues=False, outdir: Path = "./
 
     return suggestedFactors
 
+def create_and_save_difumo_matrix(output_lev1_mni_dir: Path, difumo_atlas: NiftiMapsMasker):
+    """Get loadings if loadings tsv does not exist.
+    """
+    masker = NiftiMapsMasker(
+        maps_img=difumo_atlas["maps"],
+        memory="nilearn_cache",
+        n_jobs=2,
+        memory_level=1,
+    ).fit()
+    nifti_files = get_all_mni_contrast_files(output_lev1_mni_dir)
+    matrix = create_contrast_matrix(nifti_files, masker)
+    return matrix
+
 def main() -> None:
     logging.basicConfig(level=logging.INFO)
 
-    atlas_dimension = 1024
-    # atlas_dimension = 64
-    atlas_resolution_mm = 2
-    # Create output files for EFA matrix
+    # == SETTING UP PATHS == 
+    # - Directories 
     output_lev1_mni_dir = Path("./output_lev1_mni")
     outdir = Path("./efa_results")
-    output_filename = f"parcellated_difumo_{atlas_dimension}.tsv"
-    output_filepath = outdir / output_filename
-    output_filepath.parent.mkdir(parents=True, exist_ok=True)
+    outdir.mkdir(parents=True, exist_ok=True)
 
-    # == 1. Fetch Difumo atlas ==
+    # == DIFUMO ATLAS SETUP ==
+    atlas_dimension, atlas_resolution_mm = 64, 2
+
+    # - Files
+    output_difumo_matrix = outdir / f"parcellated_difumo_{atlas_dimension}.tsv"
+
+    # - Fetch atlas
     difumo_atlas = fetch_difumo_atlas(dimension=atlas_dimension, resolution_mm=atlas_resolution_mm)
 
-    if not output_filepath.exists():
-        # Create masker for parcellating fixed
-        # effects contrast maps
-        masker = NiftiMapsMasker(
-            maps_img=difumo_atlas["maps"],
-            memory="nilearn_cache",
-            n_jobs=2,
-            memory_level=1,
-        ).fit()
-        # Get all fixed-effects contrast NIfTI files
-        nifti_files = get_all_mni_contrast_files(output_lev1_mni_dir)
-        # Create and save contrast matrix
-        matrix = create_contrast_matrix(nifti_files, masker)
-        matrix.to_csv(output_filepath, sep='\t')
+    if output_difumo_matrix.exists():
+        matrix = pd.read_csv(output_difumo_matrix, sep='\t')
     else:
-        print(f"Loading matrix from {output_filepath}")
-        matrix = pd.read_csv(output_filepath, sep='\t')
+        matrix = create_and_save_difumo_matrix(output_lev1_mni_dir, difumo_atlas)
+        matrix.to_csv(output_difumo_matrix, sep='\t')
 
     # Run parallel analysis to determine number of factors
-    # print("Running parallel analysis...")
-    # suggested_factors = _HornParallelAnalysis(matrix, K=1000, printEigenvalues=True, outdir=outdir)
-    # print(f'Parallel analysis suggested {suggested_factors} factors')
+    logging.info("Running parallel analysis...")
+    suggested_factors = _HornParallelAnalysis(matrix, K=10000, printEigenvalues=True, outdir=outdir)
+    logging.info(f'Parallel analysis suggested {suggested_factors} factors')
 
     # Run EFA model with suggested number of factors
-    suggested_factors=7 # fix to 7 instead of using parallel analysis
-    print(f"Running EFA model with {suggested_factors} factors...")
+    suggested_factors = 7 
+    logging.info(f"Running EFA model with {suggested_factors} factors...")
     fa_final = FactorAnalyzer(
         n_factors=suggested_factors,
         rotation="promax",
@@ -235,23 +238,22 @@ def main() -> None:
         columns=[f'Factor{i+1}' for i in range(suggested_factors)]
     )
 
-    # Save factor loadings to file
-    filename = f"loadings-atlDim-{atlas_dimension}_atlRes-{atlas_resolution_mm}mm_nFactors-{suggested_factors}.tsv"
-    loadings_df.to_csv(outdir / filename, sep='\t')
-    print(f"Saved loadings to {outdir / filename}")
+    # Save factor loadings to files
+    output_fa_loadings = outdir / f"loadings-atlDim-{atlas_dimension}_atlRes-{atlas_resolution_mm}mm_nFactors-{suggested_factors}.tsv"
+    loadings_df.to_csv(output_fa_loadings, sep='\t')
+    logging.info(f"Saved loadings to {output_fa_loadings}")
 
     # Create and save heatmap of factor loadings
-    print(f'Loadings df shape: {loadings_df.shape}, columns: {loadings_df.columns}')
-    discovery_subjects = ['s03', 's10', 's19', 's29', 's43']
-    for subj in discovery_subjects:
+    logging.info(f'Loadings df shape: {loadings_df.shape}, columns: {loadings_df.columns}')
+    for subj_id in ['s03', 's10', 's19', 's29', 's43']:
         plt.figure(figsize=(20, 10))
-        # subset for index starting with subj
-        subset = loadings_df.index.str.startswith(f'sub-{subj}')
+        # Create plot for each subject's loadings.
+        subset = loadings_df.index.str.startswith(f'sub-{subj_id}')
         subset_df = loadings_df[subset]
         sns.heatmap(subset_df, annot=False, cmap='coolwarm', vmin=-1, vmax=1, fmt='.2f')
         plt.title(f"EFA Loadings ({suggested_factors} Factors)")
         plt.tight_layout()
-        outpath = outdir / subj / f"efa_loadings_heatmap_{suggested_factors}factors_subj-{subj}.png"
+        outpath = outdir / f'sub-{subj_id}' / f"efa_loadings_heatmap_{suggested_factors}factors_sub-{subj_id}.png"
         outpath.parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(outpath)
         plt.close()
