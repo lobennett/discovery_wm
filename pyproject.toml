@@ -19,7 +19,7 @@ dependencies = [
     "seaborn>=0.13.2",
     "templateflow>=24.2.2",
     "factor-analyzer>=0.5.1",
-    "rpy2>=3.5.17",
+    "statsmodels>=0.14.4",
 ]
 
 [dependency-groups]

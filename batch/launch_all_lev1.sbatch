@@ -28,13 +28,13 @@ Notes:
 
 # Define all task names
 TASKS=(
-    "cuedTS"
-    "directedForgetting"
-    "flanker"
-    "goNogo"
-    "nBack"
-    "shapeMatching"
-    "spatialTS"
+    # "cuedTS"
+    # "directedForgetting"
+    # "flanker"
+    # "goNogo"
+    # "nBack"
+    # "shapeMatching"
+    # "spatialTS"
     "stopSignal"
 )
 
