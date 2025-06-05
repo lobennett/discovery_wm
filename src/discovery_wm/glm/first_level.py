@@ -1,5 +1,5 @@
 from pathlib import Path
-# from discovery_wm.glm.qa import qa_design_matrix, add_to_html_summary, get_all_contrast_vif
+from discovery_wm.glm.qa import qa_design_matrix, add_to_html_summary, get_all_contrast_vif
 
 import numpy as np
 import pandas as pd
@@ -104,10 +104,45 @@ def get_files(subj_dir: Path, task_name: str, expected_file_count: int = 8):
         elif "MNI152NLin2009cAsym_res-2_desc-brain_mask.nii.gz" in file_name:
             files[session_name]["mni_brain_mask"] = file
 
-    for key in files:
-        assert len(files[key]) == expected_file_count, (
-            f"{key} has count {len(files[key])} not {expected_file_count}"
-        )
+    # Define required files (everything except ICA files)
+    required_keys = ["events", "confounds", "t1w_data", "t1w_brain_mask", 
+                     "mni_data", "mni_brain_mask"]
+    
+    for session_name, session_files in files.items():
+        # Count how many required files are present
+        required_count = sum(1 for key in required_keys if key in session_files)
+        
+        # Check that all required files are present
+        if required_count != len(required_keys):
+            missing = [key for key in required_keys if key not in session_files]
+            raise AssertionError(
+                f"{session_name} is missing required files: {', '.join(missing)}"
+            )
+        
+        # Optional check on total count if you still want to use expected_file_count
+        actual_count = len(session_files)
+        if actual_count != expected_file_count:
+            # If count is less than expected, make sure only ICA files are missing
+            if actual_count >= expected_file_count - 2:  # Could be missing up to 2 ICA files
+                missing_ica = []
+                if "ica_mixing" not in session_files:
+                    missing_ica.append("ica_mixing")
+                if "ica_status" not in session_files:
+                    missing_ica.append("ica_status")
+                
+                # If the only missing files are ICA files, this is acceptable
+                if len(missing_ica) == expected_file_count - actual_count:
+                    pass  # This is fine, only ICA files are missing
+                else:
+                    # Something else is missing or extra files present
+                    raise AssertionError(
+                        f"{session_name} has count {actual_count} not {expected_file_count}"
+                    )
+            else:
+                # Missing more than just ICA files
+                raise AssertionError(
+                    f"{session_name} has count {actual_count} not {expected_file_count}"
+                )
 
     return files
 
@@ -470,8 +505,8 @@ def log_session_files(session, files_dict):
         "t1w_brain_mask": "T1w brain mask",
         "mni_data": "MNI data",
         "mni_brain_mask": "MNI brain mask", 
-        "ica_mixing": "ICA mixing",
-        "ica_status": "ICA status"
+        # "ica_mixing": "ICA mixing",
+        # "ica_status": "ICA status"
     }
     
     for key, label in labels.items():
@@ -497,7 +532,8 @@ def log_session_files(session, files_dict):
         print(f"{status} | {label:<15} | {path_str}")
 
 def main():
-    _, _, _, _, _, glm_data_dir, _ = get_path_config()
+    # _, _, _, _, _, glm_data_dir, _ = get_path_config()
+    glm_data_dir = Path("/oak/stanford/groups/russpold/data/network_grant/validation_BIDS/derivatives/glm_data")
 
     # Parse the command line arguments
     parser = get_parser()
@@ -510,7 +546,7 @@ def main():
     # - output for each of the models and
     # - quality control files for each model
     _, quality_control_dir, indiv_contrasts_dir, fixed_effects_dir, \
-        simplified_events_dir = prepare_results_dir(subj_id, task_name, Path("output_lev1_mni_no_ted_comp"))
+        simplified_events_dir = prepare_results_dir(subj_id, task_name, Path("output_lev1_mni_validation"))
     
     # Prepare data directory
     # - This directory contains the BIDS data
@@ -547,8 +583,8 @@ def main():
         t1w_brain_mask = files[session]["t1w_brain_mask"]
         mni_data = files[session]["mni_data"]
         mni_brain_mask = files[session]["mni_brain_mask"]
-        ica_mixing = files[session]["ica_mixing"]
-        ica_status = files[session]["ica_status"]
+        # ica_mixing = files[session]["ica_mixing"]
+        # ica_status = files[session]["ica_status"]
     
         # Log all files for this session
         # TODO: Check this logging in next run
@@ -618,32 +654,35 @@ def main():
         contrasts = contrasts_config[task_name]
         design_matrix['constant'] = 1
 
-        # exclusion, any_fail = qa_design_matrix(
-        #     indiv_contrasts_dir,
-        #     contrasts,
-        #     design_matrix,
-        #     subj_id,
-        #     task_name,
-        #     session,
-        #     percent_junk=percent_junk,
-        # )
+        exclusion, any_fail = qa_design_matrix(
+            indiv_contrasts_dir,
+            contrasts,
+            design_matrix,
+            subj_id,
+            task_name,
+            session,
+            percent_junk=percent_junk,
+        )
 
-        # add_to_html_summary(
-        #     subj_id,
-        #     contrasts,
-        #     design_matrix,
-        #     indiv_contrasts_dir,
-        #     regress_rt="response_time_centered",
-        #     duration_choice="constant",
-        #     task=task_name,
-        #     any_fail=any_fail,
-        #     exclusion=exclusion,
-        #     session=session,
-        #     percent_junk=percent_junk,
-        #     model_break=True,
-        #     add_deriv=False,
-        #     only_breaks_with_performance_feedback=True
-        # )
+        print(exclusion)
+        print(any_fail)
+
+        add_to_html_summary(
+            subj_id,
+            contrasts,
+            design_matrix,
+            indiv_contrasts_dir,
+            regress_rt="response_time_centered",
+            duration_choice="constant",
+            task=task_name,
+            any_fail=any_fail,
+            exclusion=exclusion,
+            session=session,
+            percent_junk=percent_junk,
+            # model_break=True,
+            # add_deriv=False,
+            # only_breaks_with_performance_feedback=True
+        )
 
         # Fit GLM to the data
         fmri_glm = FirstLevelModel(
